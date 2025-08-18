@@ -1,6 +1,6 @@
 [project]
 name = "exar"
-version = "0.1.0"
+version = "1.0.0"
 description = "A Unified Experience-Grounded Agentic Reasoning Architecture"
 authors = [{ name = "Mirko Lenz", email = "mirko@mirkolenz.com" }]
 readme = "README.md"
