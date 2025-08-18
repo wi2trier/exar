@@ -1,0 +1,55 @@
+name: release
+on:
+  push:
+    branches: [main, beta]
+jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+  release:
+    if: ${{ github.repository_owner == 'wi2trier' }}
+    runs-on: ubuntu-latest
+    needs: check
+    environment:
+      name: release
+      url: https://github.com/wi2trier/exar/releases/tag/${{ steps.semanticrelease.outputs.git-tag }}
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.semanticrelease.outputs.version }}
+      released: ${{ steps.semanticrelease.outputs.released }}
+      git-head: ${{ steps.semanticrelease.outputs.git-head }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: DeterminateSystems/nix-installer-action@v19
+        with:
+          extra-conf: |
+            accept-flake-config = true
+      - uses: cachix/cachix-action@v16
+        with:
+          name: wi2trier
+          authToken: ${{ secrets.CACHIX_TOKEN }}
+      - run: nix profile install .#release-env
+      - uses: cihelper/action-semanticrelease-uv@v1
+        id: semanticrelease
+        with:
+          uv-publish: false
+      - uses: actions/upload-artifact@v4
+        if: ${{ steps.semanticrelease.outputs.released == 'true' }}
+        with:
+          name: uv-build
+          path: ./dist
+  deploy-pypi:
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ needs.release.outputs.released == 'true' }}
+    permissions:
+      id-token: write
+    environment:
+      name: release
+      url: https://pypi.org/project/exar/${{needs.release.outputs.version}}/
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: uv-build
+          path: ./dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
