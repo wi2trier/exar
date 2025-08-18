@@ -1,0 +1,34 @@
+[project]
+name = "exar"
+version = "0.1.0"
+description = "A Unified Experience-Grounded Agentic Reasoning Architecture"
+authors = [{ name = "Mirko Lenz", email = "mirko@mirkolenz.com" }]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/wi2trier/exar"
+Documentation = "https://wi2trier.github.io/exar/"
+Issues = "https://github.com/wi2trier/exar/issues"
+Changelog = "https://github.com/wi2trier/exar/releases"
+
+[dependency-groups]
+dev = []
+test = ["pytest>=8,<9", "pytest-cov>=6,<7"]
+docs = ["pdoc>=15,<16"]
+
+[build-system]
+requires = ["uv-build>=0.7,<1"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["src", "tests"]
+addopts = ["--cov=src/exar", "--cov-report=term-missing", "--doctest-modules", "--import-mode=importlib"]
+doctest_optionflags = ["NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
+
+[tool.uv]
+default-groups = ["dev", "test", "docs"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
