@@ -48,7 +48,7 @@ jobs:
       name: release
       url: https://pypi.org/project/exar/${{needs.release.outputs.version}}/
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: uv-build
           path: ./dist
