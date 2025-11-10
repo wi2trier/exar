@@ -15,7 +15,7 @@ Changelog = "https://github.com/wi2trier/exar/releases"
 
 [dependency-groups]
 dev = []
-test = ["pytest>=8,<9", "pytest-cov>=7,<8"]
+test = ["pytest>=9,<10", "pytest-cov>=7,<8"]
 docs = ["pdoc>=16,<17"]
 
 [build-system]
