@@ -19,7 +19,7 @@ jobs:
       released: ${{ steps.semanticrelease.outputs.released }}
       git-head: ${{ steps.semanticrelease.outputs.git-head }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: DeterminateSystems/nix-installer-action@v21
         with:
           extra-conf: |
