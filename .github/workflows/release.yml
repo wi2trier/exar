@@ -19,21 +19,21 @@ jobs:
       released: ${{ steps.semanticrelease.outputs.released }}
       git-head: ${{ steps.semanticrelease.outputs.git-head }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: DeterminateSystems/nix-installer-action@v21
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: DeterminateSystems/nix-installer-action@c5a866b6ab867e88becbed4467b93592bce69f8a # v21
         with:
           extra-conf: |
             accept-flake-config = true
-      - uses: cachix/cachix-action@v16
+      - uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1 # v16
         with:
           name: wi2trier
           authToken: ${{ secrets.CACHIX_TOKEN }}
       - run: nix profile install .#release-env
-      - uses: cihelper/action-semanticrelease-uv@v1
+      - uses: cihelper/action-semanticrelease-uv@a1c285cab8f6c4cb14e841e869ea9f58def2024a # v1
         id: semanticrelease
         with:
           uv-publish: false
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ steps.semanticrelease.outputs.released == 'true' }}
         with:
           name: uv-build
@@ -48,8 +48,8 @@ jobs:
       name: release
       url: https://pypi.org/project/exar/${{needs.release.outputs.version}}/
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: uv-build
           path: ./dist
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
