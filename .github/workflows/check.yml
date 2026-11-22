@@ -1,22 +1,17 @@
 name: check
 on:
+  pull_request:
   workflow_call:
   push:
-    branches: [dev]
+    branches: [main, beta]
 jobs:
   check:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - uses: actions/checkout@v7
+      - uses: $/.github/actions/setup-nix
         with:
-          extra-conf: |
-            accept-flake-config = true
-            log-lines = 1000
-      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
-        with:
-          name: wi2trier
-          authToken: ${{ secrets.CACHIX_TOKEN }}
+          cachix-token: ${{ secrets.CACHIX_TOKEN }}
       - run: nix flake check --show-trace

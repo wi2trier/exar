@@ -1,34 +1,105 @@
 [project]
 name = "exar"
 version = "1.0.0"
-description = "A Unified Experience-Grounded Agentic Reasoning Architecture"
-authors = [{ name = "Mirko Lenz", email = "mirko@mirkolenz.com" }]
+description = "Experience-grounded agentic reasoning: memories, agents, orchestrators, and case-based experience for any agent framework"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []
+requires-python = ">=3.14,<4"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Mirko Lenz", email = "mirko@mirkolenz.com" }]
+keywords = [
+  "agents",
+  "case-based reasoning",
+  "cbr",
+  "experience",
+  "llm",
+  "mcp",
+  "memory",
+  "orchestration",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+dependencies = [
+  "griffelib>=2,<3",
+  "opentelemetry-sdk>=1,<2",
+  "opentelemetry-util-genai>=1.3.0b0,<2",
+  "pydantic>=2,<3",
+  "pyyaml>=6,<7",
+]
 
 [project.urls]
-Repository = "https://github.com/wi2trier/exar"
+Changelog = "https://github.com/wi2trier/exar/releases"
 Documentation = "https://wi2trier.github.io/exar/"
 Issues = "https://github.com/wi2trier/exar/issues"
-Changelog = "https://github.com/wi2trier/exar/releases"
+Repository = "https://github.com/wi2trier/exar"
+
+[project.optional-dependencies]
+a2a = ["a2a-sdk[http-server]>=1,<2"]
+all = [
+  "exar[a2a,anydoc,bpmn,cbrkit,claude-agent-sdk,docling,eval,http,kreuzberg,markitdown,mcp,media,pdf-oxide,pydantic-ai,semantic,sql,table,web]",
+]
+anydoc = ["exar[ingest]", "firecrawl-anydoc>=0.2,<1"]
+bpmn = ["exar[cbrkit]", "cbrkit[bpmn]>=2,<3", "pydantic-graph>=2,<3", "simpleeval>=1,<2"]
+cbrkit = ["cbrkit>=2,<3"]
+chonkie = ["exar[ingest]", "chonkie>=1,<2"]
+claude-agent-sdk = ["exar[pydantic-ai]", "claude-agent-sdk>=0.2,<1"]
+docling = ["exar[ingest]", "docling>=2,<3", "pdf-inspector>=1,<2", "tesserocr>=2,<3"]
+eval = ["pydantic-evals>=2,<3"]
+http = ["exar[pydantic-ai]", "httpx2>=2,<3"]
+ingest = ["pillow>=13,<14"]
+kreuzberg = ["exar[ingest]", "kreuzberg>=4,<5"]
+markitdown = ["exar[ingest]", "markitdown[docx,outlook,pdf,pptx,xls,xlsx]>=0.1,<1"]
+mcp = ["exar[pydantic-ai]", "fastmcp>=4,<5"]
+media = ["exar[ingest]", "opencv-python-headless>=5,<6", "pypdfium2>=5,<6"]
+pdf-inspector = ["exar[ingest]", "pdf-inspector>=1,<2"]
+pdf-oxide = ["exar[ingest]", "pdf-oxide>=0.3,<1"]
+pydantic-ai = ["pydantic-ai-slim>=2,<3", "pydantic-ai-harness>=0.71,<1"]
+semantic = ["exar[chonkie]", "chonkie[semantic]>=1,<2"]
+sql = ["exar[pydantic-ai]", "sqlalchemy[asyncio]>=2,<3"]
+table = ["exar[pydantic-ai]", "duckdb>=2,<3", "fastexcel>=0.21,<1", "polars>=2,<3"]
+web = ["exar[pydantic-ai]", "httpx2>=2,<3", "trafilatura>=2,<3", "markdownify>=1,<2"]
 
 [dependency-groups]
-dev = []
-test = ["pytest>=9,<10", "pytest-cov>=7,<8"]
 docs = ["pdoc>=16,<17"]
+test = ["pytest>=9,<10", "pytest-asyncio>=1,<2", "pytest-cov>=7,<8"]
 
 [build-system]
-requires = ["uv-build>=0.7,<1"]
+requires = ["uv-build>=0.13,<1"]
 build-backend = "uv_build"
 
-[tool.pytest.ini_options]
-testpaths = ["src", "tests"]
-addopts = ["--cov=src/exar", "--cov-report=term-missing", "--doctest-modules", "--import-mode=importlib"]
-doctest_optionflags = ["NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
+[tool.pytest]
+addopts = [
+  "--cov=src/exar",
+  "--cov-report=term-missing",
+  "--doctest-glob=README.md",
+  "--doctest-modules",
+  "--import-mode=importlib",
+]
+doctest_optionflags = ["ELLIPSIS", "IGNORE_EXCEPTION_DETAIL", "NORMALIZE_WHITESPACE"]
+testpaths = ["README.md", "src", "tests"]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
 
-[tool.uv]
-default-groups = ["dev", "test", "docs"]
+[tool.ruff.lint]
+# lazy exports live in `if TYPE_CHECKING:` blocks that `exar._lazy` resolves at runtime
+ignore = ["TC004"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.uv]
+default-groups = ["test", "docs"]
+
+# cbrkit 2 is unreleased, use the sibling checkout until then.
+[tool.uv.sources]
+cbrkit = { path = "../cbrkit", editable = true }

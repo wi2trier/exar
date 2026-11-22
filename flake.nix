@@ -7,30 +7,73 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    pyproject-build-systems = {
+      url = "github:pyproject-nix/build-system-pkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   nixConfig = {
     extra-substituters = [
       "https://wi2trier.cachix.org"
+      "https://pyproject-nix.cachix.org"
     ];
     extra-trusted-public-keys = [
       "wi2trier.cachix.org-1:8wJvKtRD8XUqYZMdjECTsN1zWxHy9kvp5aoPQiAm1fY="
+      "pyproject-nix.cachix.org-1:UNzugsOlQIu2iOz0VyZNBQm2JSrL/kwxeCcFGw+jMe0="
     ];
   };
   outputs =
-    inputs:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = import inputs.systems;
+    inputs@{
+      self,
+      nixpkgs,
+      flake-parts,
+      systems,
+      uv2nix,
+      ...
+    }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = import systems;
       imports = with inputs; [
+        flake-parts.flakeModules.easyOverlay
         treefmt-nix.flakeModule
       ];
       perSystem =
         {
           pkgs,
+          system,
           lib,
           config,
           ...
         }:
         {
+          _module.args.pkgs = import nixpkgs {
+            inherit system;
+            config = {
+              allowUnfree = true;
+            };
+            overlays = lib.singleton (
+              final: prev: {
+                uv = uv2nix.packages.${system}.uv-bin;
+              }
+            );
+          };
+          overlayAttrs = {
+            inherit (config.packages) exar;
+          };
+          checks = config.packages.exar.tests // {
+            inherit (config.packages.exar) docs;
+          };
           treefmt = {
             projectRootFile = "flake.nix";
             programs = {
@@ -40,11 +83,16 @@
             };
           };
           packages = {
+            inherit (config.packages.exar) docs;
+            default = config.packages.exar;
+            exar = pkgs.callPackage ./default.nix {
+              inherit (inputs) uv2nix pyproject-nix pyproject-build-systems;
+            };
             release-env = pkgs.buildEnv {
               name = "release-env";
               paths = with pkgs; [
                 uv
-                python3
+                python314
               ];
             };
           };
@@ -53,9 +101,16 @@
               uv
               config.treefmt.build.wrapper
             ];
-            UV_PYTHON = lib.getExe pkgs.python3;
+            nativeBuildInputs = with pkgs; [ zlib ];
+            LD_LIBRARY_PATH = lib.makeLibraryPath [
+              pkgs.stdenv.cc.cc
+              pkgs.zlib
+              "/run/opengl-driver"
+            ];
+            UV_PYTHON = lib.getExe pkgs.python314;
+            TOKENIZERS_PARALLELISM = true;
             shellHook = ''
-              uv sync --all-extras --locked
+              uv sync --all-extras
             '';
           };
         };
