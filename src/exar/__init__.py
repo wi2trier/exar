@@ -12,6 +12,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
   and the records they exchange: traces of OpenTelemetry spans, actions, verdicts, and the hits and changes of memories.
 - `otel`: Capturing the OpenTelemetry spans of runs, the typed GenAI accessors of their spans, and the usage of their model calls,
   composing with the tracer provider of the host.
+- `agents`: Running agents on tasks under a run config of a policy and limits, recording every nested invocation into a trace.
 - `errors`: Refused actions, conflicting writes, missing extras, and failed agents.
 - `helpers`: Immutable mappings, names, bounded concurrency, and durable writes.
 - `schema`: Serialized forms and JSON Schemas of configurable classes, described by their docstrings.
@@ -31,6 +32,7 @@ from .errors import MissingExtra
 
 if TYPE_CHECKING:
     from . import (
+        agents,
         errors,
         helpers,
         otel,
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
     )
 
 __all__ = [
+    "agents",
     "errors",
     "helpers",
     "otel",
