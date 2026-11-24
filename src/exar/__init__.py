@@ -12,6 +12,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
   and the records they exchange: traces of OpenTelemetry spans, actions, verdicts, and the hits and changes of memories.
 - `errors`: Refused actions, conflicting writes, missing extras, and failed agents.
 - `helpers`: Immutable mappings, names, bounded concurrency, and durable writes.
+- `schema`: Serialized forms and JSON Schemas of configurable classes, described by their docstrings.
 
 Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
@@ -29,12 +30,14 @@ if TYPE_CHECKING:
     from . import (
         errors,
         helpers,
+        schema,
         typing,
     )
 
 __all__ = [
     "errors",
     "helpers",
+    "schema",
     "typing",
 ]
 
