@@ -10,6 +10,8 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 
 - `typing`: The protocols `Agent`, `Assessed`, `Policy`, `Memory`, and `Experience`,
   and the records they exchange: traces of OpenTelemetry spans, actions, verdicts, and the hits and changes of memories.
+- `otel`: Capturing the OpenTelemetry spans of runs, the typed GenAI accessors of their spans, and the usage of their model calls,
+  composing with the tracer provider of the host.
 - `errors`: Refused actions, conflicting writes, missing extras, and failed agents.
 - `helpers`: Immutable mappings, names, bounded concurrency, and durable writes.
 - `schema`: Serialized forms and JSON Schemas of configurable classes, described by their docstrings.
@@ -30,6 +32,7 @@ if TYPE_CHECKING:
     from . import (
         errors,
         helpers,
+        otel,
         schema,
         typing,
     )
@@ -37,6 +40,7 @@ if TYPE_CHECKING:
 __all__ = [
     "errors",
     "helpers",
+    "otel",
     "schema",
     "typing",
 ]
