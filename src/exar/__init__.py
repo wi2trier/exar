@@ -11,6 +11,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 - `typing`: The protocols `Agent`, `Assessed`, `Policy`, `Memory`, and `Experience`,
   and the records they exchange: traces of OpenTelemetry spans, actions, verdicts, and the hits and changes of memories.
 - `errors`: Refused actions, conflicting writes, missing extras, and failed agents.
+- `helpers`: Immutable mappings, names, bounded concurrency, and durable writes.
 
 Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
@@ -27,11 +28,13 @@ from .errors import MissingExtra
 if TYPE_CHECKING:
     from . import (
         errors,
+        helpers,
         typing,
     )
 
 __all__ = [
     "errors",
+    "helpers",
     "typing",
 ]
 
