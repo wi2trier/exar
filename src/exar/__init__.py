@@ -15,6 +15,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 - `errors`: Refused actions, conflicting writes, missing extras, and failed agents.
 - `helpers`: Immutable mappings, names, bounded concurrency, and durable writes.
 - `schema`: Serialized forms and JSON Schemas of configurable classes, described by their docstrings.
+- `policy`: Policies that allow, refuse, or ask for approval of actions.
 
 Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
         errors,
         helpers,
         otel,
+        policy,
         schema,
         typing,
     )
@@ -41,6 +43,7 @@ __all__ = [
     "errors",
     "helpers",
     "otel",
+    "policy",
     "schema",
     "typing",
 ]
