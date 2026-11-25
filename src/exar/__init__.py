@@ -22,6 +22,8 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 - `policy`: Policies that allow, refuse, or ask for approval of actions.
 - `memory`: Memories over entries in process and files, with tools for language models.
 - `workflows`: Workflow recipes such as chaining, routing, and the 4R cycle.
+- `experience`: The CBR cycle over past runs of any agent (Meta-CBR): retrieve, reuse, revise, and retain,
+  whose storage of runs needs the `cbrkit` extra and whose reuse of processes needs the `bpmn` extra.
 
 Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
@@ -44,6 +46,7 @@ if TYPE_CHECKING:
         bpmn,
         cbrkit,
         errors,
+        experience,
         helpers,
         ingest,
         memory,
@@ -61,6 +64,7 @@ __all__ = [
     "bpmn",
     "cbrkit",
     "errors",
+    "experience",
     "helpers",
     "ingest",
     "memory",

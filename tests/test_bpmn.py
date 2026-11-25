@@ -1,14 +1,21 @@
 import asyncio
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Generator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import pydantic_graph.graph_builder
 import pytest
 from cbrkit.model.graph import BpmnGraph, from_bpmn, parse_bpmn
+from opentelemetry import trace
 from pydantic import BaseModel, ConfigDict
 
-from exar.agents import FunctionAgent
+from exar import otel
+from exar.agents import FunctionAgent, RunConfig, run_async
 from exar.bpmn import BpmnProcess, validate
+from exar.experience import Trajectory
+from exar.otel import provider
+from exar.policy import allow_all
 from exar.typing import Agent
 
 DATA = Path(__file__).parent / "data"
@@ -350,3 +357,53 @@ async def test_functions(task: str, published: bool) -> None:
 
     assert "state check <<choice>>" in process.render()
     assert (await process(State(task=task))).published == published
+
+
+@contextmanager
+def logfire_span(name: str, **attributes: object) -> Generator[trace.Span]:
+    """A span of pydantic-graph as Logfire would record it."""
+    with provider().get_tracer("logfire").start_as_current_span(name) as span:
+        yield span
+
+
+async def test_traced_and_typed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pydantic_graph.graph_builder, "logfire_span", logfire_span)
+
+    def combine(state: State) -> int:
+        return state.web + state.papers
+
+    process = BpmnProcess[State](
+        graph=load("parallel"),
+        agents={
+            "web": FunctionAgent(func=lambda state: {"web": 1}),
+            "papers": FunctionAgent(func=lambda state: {"papers": 2}),
+            "combine": FunctionAgent(func=combine),
+        },
+        outputs={"combine": "summary"},
+    )
+    trace = await run_async(process, State(), RunConfig(policy=allow_all))
+
+    assert trace.output.summary == 3
+    assert otel.operation(trace.root) == "invoke_workflow"
+    assert sorted(otel.agents(trace.root)) == ["BpmnProcess", "combine", "papers", "web"]
+    assert {span.name for span in trace.walk() if span.scope == "logfire"} >= {
+        "run graph process",
+        "run node combine",
+    }
+    assert sorted(step.name for step in Trajectory.of(trace).steps) == [
+        "combine",
+        "papers",
+        "web",
+    ]
+
+    with pytest.raises(ValueError, match="unknown fields of the state: unknown"):
+        await run(
+            "parallel",
+            FakeContext(
+                agents={
+                    "web": returns({"unknown": 1}),
+                    "papers": returns({}),
+                    "combine": returns(0),
+                }
+            ),
+        )
