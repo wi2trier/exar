@@ -16,6 +16,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 - `errors`: Refused actions, conflicting writes, missing extras, and failed agents.
 - `helpers`: Immutable mappings, names, bounded concurrency, and durable writes.
 - `schema`: Serialized forms and JSON Schemas of configurable classes, described by their docstrings.
+- `subprocess`: The subprocess runner with process limits and typed async wrappers of the command line tools `rg` and `jq`.
 - `policy`: Policies that allow, refuse, or ask for approval of actions.
 
 Integrations and extras, so `import exar` never loads an optional dependency
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
         otel,
         policy,
         schema,
+        subprocess,
         typing,
     )
 
@@ -48,6 +50,7 @@ __all__ = [
     "otel",
     "policy",
     "schema",
+    "subprocess",
     "typing",
 ]
 
