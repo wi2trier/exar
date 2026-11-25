@@ -437,7 +437,7 @@ trace = run(drafter, "Draft a reply", RunConfig(policy=EffectPolicy(), limits=Li
 `toolset` serves exar tools with their effects as tool metadata, and `EffectGate` derives native approvals from the policy of each run by these effects: it hides the tools the policy denies and requires approval for the calls it asks about.
 The policy is that of the exar run by default, or comes from the context of the pydantic-ai run, such as from its deps, and decides on the `tool_action` of a call (`definition_action`), which carries the metadata of the tool, so a host can decide by more than the effect.
 Third-party tools declare their effects on their toolset, such as `MCPServerStdio(...).with_metadata(effect="read")`, which `EffectGate` sees, unlike the later wrapper toolset of the `SetToolMetadata` capability, and `DeclaredEffects` declares them for tools a capability adds, such as those of pydantic-ai-harness.
-`RetrieveExperience` gives an agent the hints of past runs of similar tasks, as instructions of a run or on demand by the tool `retrieve_experience`, while a `CbrCycle` around the agent revises and retains its runs.
+`RetrieveExperience` gives an agent the hints of past runs of similar tasks, reported for the prompt of each run as a read of the tool `retrieve_experience`, which leaves the cached prefix alone and gives the hints no authority, or on demand by that tool, while a `CbrCycle` around the agent revises and retains its runs.
 Its required `task` projects a prompt onto a task of the experience, skipping retrieval where it returns None, such as onto its text, the text parts of a multimodal one joined (`prompt_text`), or onto its GenAI parts with `exar.text.genai_parts`, which renders them as text wherever exar shows a task to a model.
 
 ```python

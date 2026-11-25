@@ -2,7 +2,7 @@
 
 State that changes between turns would rewrite the cached prefix if it were rendered into fresh instructions,
 so a note appends its change to the history instead.
-`RunNote` renders instructions once per run, which append a changed rendering.
+`RunNote` renders instructions once per run, which append a changed rendering, or rewrite the prefix as fixed text.
 Text for the model is rendered by a `Render` from the run, which a host overrides to localize it, here and in the guards.
 `ToolNote` reports state as tool calls the model did not make, with their results,
 enqueued where the compaction window does not show them yet.
@@ -19,6 +19,7 @@ from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.messages import (
+    InstructionChangePolicy,
     InstructionPart,
     ModelMessage,
     ModelRequest,
@@ -31,7 +32,15 @@ from pydantic_ai.models import ModelRequestContext
 
 from ..helpers import frozendict
 
-__all__ = ["Read", "Reads", "Render", "RunNote", "ToolNote", "latest_read"]
+__all__ = [
+    "Read",
+    "Reads",
+    "Render",
+    "RunNote",
+    "ToolNote",
+    "enqueue_reads",
+    "latest_read",
+]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -90,6 +99,34 @@ def latest_read(
     return latest
 
 
+def enqueue_reads[D](
+    ctx: RunContext[D],
+    window: Sequence[ModelMessage],
+    reads: Iterable[Read],
+    metadata: Mapping[str, JsonValue] | None = None,
+) -> None:
+    """Enqueues the *reads* whose result the compaction *window* does not show, as one response of tool calls and one request of their results."""
+    unseen = [
+        read
+        for read in reads
+        if latest_read(window, read.tool, read.args) != read.content
+    ]
+
+    if not unseen:
+        return
+
+    calls = [ToolCallPart(read.tool, dict(read.args)) for read in unseen]
+    results = [
+        ToolReturnPart(read.tool, read.content, call.tool_call_id)
+        for read, call in zip(unseen, calls, strict=True)
+    ]
+    stamp = None if metadata is None else dict(metadata)
+    ctx.enqueue(
+        ModelResponse(parts=calls, metadata=stamp),
+        ModelRequest(parts=results, metadata=stamp),
+    )
+
+
 @dataclass(kw_only=True)
 class ToolNote[D](AbstractCapability[D]):
     """Reports reads before a model request whose compaction window shows other results or none.
@@ -123,27 +160,9 @@ class ToolNote[D](AbstractCapability[D]):
     ) -> ModelRequestContext:
         """Enqueues the reads the window does not show."""
         window = post_compaction_window(ctx.messages)
-        reads = [
-            read
-            for read in await self.reads(ctx, window)
-            if latest_read(window, read.tool, read.args) != read.content
-        ]
-
-        if reads:
-            calls = [ToolCallPart(read.tool, dict(read.args)) for read in reads]
-            results = [
-                ToolReturnPart(read.tool, read.content, call.tool_call_id)
-                for read, call in zip(reads, calls, strict=True)
-            ]
-            ctx.enqueue(
-                ModelResponse(parts=calls, metadata=self._metadata()),
-                ModelRequest(parts=results, metadata=self._metadata()),
-            )
+        enqueue_reads(ctx, window, await self.reads(ctx, window), self.metadata)
 
         return request_context
-
-    def _metadata(self) -> dict[str, JsonValue] | None:
-        return None if self.metadata is None else dict(self.metadata)
 
 
 @dataclass(kw_only=True)
@@ -154,10 +173,14 @@ class RunNote[D](AbstractCapability[D]):
     in a worker thread if it blocks, such as by reading files,
     and an `on_change="append"` block extends the cached prefix where it changed between runs instead of rewriting it.
     An empty rendering contributes no block, and the `id` of the capability addresses the block, which it needs to append.
+    With `on_change="rewrite"`, it is fixed text that rewrites the prefix when it changes,
+    for what changes only along with the prefix, such as the tools a run may call,
+    which pydantic-ai places with the other fixed text rather than behind the cache boundary as it would an instruction callable.
 
     Args:
         render: Renders the instructions from the run.
         blocking: Whether the rendering blocks, such as by reading files, so it runs in a worker thread.
+        on_change: Whether a changed rendering appends to the history or rewrites the prefix.
 
     Examples:
         >>> import asyncio
@@ -172,6 +195,7 @@ class RunNote[D](AbstractCapability[D]):
 
     render: Render[D]
     blocking: bool = False
+    on_change: InstructionChangePolicy = "append"
     text: str = field(default="", init=False)
 
     async def for_run(self, ctx: RunContext[D]) -> Self:
@@ -186,5 +210,7 @@ class RunNote[D](AbstractCapability[D]):
         return note
 
     def get_instructions(self) -> InstructionPart | None:
-        """The rendering as an appending block, none while it is empty."""
-        return InstructionPart(self.text, on_change="append") if self.text else None
+        """The rendering as a block of the `on_change` policy, none while it is empty."""
+        return (
+            InstructionPart(self.text, on_change=self.on_change) if self.text else None
+        )

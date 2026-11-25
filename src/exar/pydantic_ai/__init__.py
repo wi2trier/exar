@@ -9,12 +9,12 @@
 - `EffectGate`: Derives native approvals from the `exar.policy` policy of each run by the actions of the tools (`definition_action`),
   whose effects `DeclaredEffects` declares for tools built elsewhere.
 - `RetrieveExperience`: Gives an agent the hints of past runs of similar tasks (`exar.experience`),
-  as instructions or by the tool `retrieve_experience`, for the task its `task` projects a prompt onto, such as its text (`prompt_text`).
+  reported as a read of the tool `retrieve_experience` or by calling it, for the task its `task` projects a prompt onto, such as its text (`prompt_text`).
 - `compaction`: `CompactOnOverflow` summarizes a history the context window refused, keeping the prompt cache,
   with `summarize`, `is_compaction`, and `compaction_cut` for hosts that compact on their own.
 - `RecordWorkspace`: Records the files each run changed in its workspace as `exar.experience.FileChanges`,
   compared by `snapshot` and `changes`, for the hints `exar.experience.Files`.
-- `ToolNote`, `RunNote`: Report the state of a run as tool results or appending instructions, keeping the prompt cache.
+- `ToolNote`, `RunNote`: Report the state of a run as tool results or instructions rendered once per run, keeping the prompt cache.
 - `guards`: Guards against slips of models and limits of providers, such as `LenientArguments`, `LimitNotes`, and `PromptImageLimit`,
   and `ToolOutputFence`, which frames every tool result as data without authority.
 

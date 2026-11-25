@@ -13,7 +13,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from exar.pydantic_ai import Read, ToolNote, latest_read
+from exar.pydantic_ai import Read, RunNote, ToolNote, latest_read
 from exar.pydantic_ai.compaction import compaction_window, is_compaction
 
 
@@ -98,3 +98,28 @@ def test_stored_histories_keep_their_markers() -> None:
     assert is_compaction(stored[1])
     assert isinstance(window[0], ModelRequest) and window[0].parts == stored[1].parts
     assert latest_read(window, "read_memory") == "- likes tea"
+
+
+def test_a_rewriting_run_note_is_fixed_text_ahead_of_instruction_callables() -> None:
+    sent: list[list[tuple[str, bool]]] = []
+
+    def reply(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        parts = info.model_request_parameters.instruction_parts or []
+        sent.append([(part.content, part.dynamic) for part in parts])
+        return _reply(messages, info)
+
+    agent = Agent(
+        FunctionModel(reply),
+        deps_type=str,
+        instructions=lambda ctx: "callable",
+        capabilities=[
+            RunNote[str](render=lambda ctx: f"tools {ctx.deps}", on_change="rewrite")
+        ],
+    )
+    first = asyncio.run(agent.run("hi", deps="a")).all_messages()
+    asyncio.run(agent.run("hi", deps="b", message_history=first))
+
+    assert sent == [
+        [("tools a", False), ("callable", True)],
+        [("tools b", False), ("callable", True)],
+    ]

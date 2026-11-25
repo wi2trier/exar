@@ -47,6 +47,7 @@ from exar.pydantic_ai import (
     RecordWorkspace,
     RetrieveExperience,
     instrumentation,
+    latest_read,
     prompt_text,
     toolset,
     traced_events,
@@ -532,10 +533,10 @@ async def test_retrieve_experience_multimodal(text: list[str], hinted: bool) -> 
         capabilities=[RetrieveExperience(experience=cases, task=prompt_text)],
     )
     result = await agent.run([*text, ImageUrl("https://example.com/sum.png")])
-    [request, *_] = result.all_messages()
+    messages = result.all_messages()
 
-    assert isinstance(request, ModelRequest)
-    assert (request.instructions is not None) is hinted
+    assert (latest_read(messages, "retrieve_experience") is not None) is hinted
+    assert isinstance(messages[0], ModelRequest) and messages[0].instructions is None
 
 
 def test_prompts_render_media_as_placeholders() -> None:
