@@ -32,6 +32,8 @@ and a missing extra surfaces as an `AttributeError` that names it:
 - `exar.bpmn`: BPMN processes as agents, over the process graphs of cbrkit run by pydantic-graph, needs the `bpmn` extra.
 - `exar.pydantic_ai`: Runs of natively configured pydantic-ai agents as exar agents, their instrumentation,
   an effect gate, toolsets, and guards, needs the `pydantic-ai` extra.
+- `exar.claude_agent_sdk`: Natively configured Claude Agent SDK clients as exar agents, tools, and permissions,
+  needs the `claude-agent-sdk` extra.
 - `exar.mcp`: Serving tools over MCP, needs the `mcp` extra.
 - `exar.a2a`: Serving and calling agents over A2A, needs the `a2a` extra.
 - `exar.ingest`: Parsing, chunking, and syncing documents, each backend needs the extra of its name.
@@ -50,6 +52,7 @@ if TYPE_CHECKING:
         agents,
         bpmn,
         cbrkit,
+        claude_agent_sdk,
         errors,
         experience,
         helpers,
@@ -71,6 +74,7 @@ __all__ = [
     "agents",
     "bpmn",
     "cbrkit",
+    "claude_agent_sdk",
     "errors",
     "experience",
     "helpers",
@@ -91,6 +95,7 @@ _EXTRAS = {
     "a2a": "a2a",
     "bpmn": "bpmn",
     "cbrkit": "cbrkit",
+    "claude_agent_sdk": "claude-agent-sdk",
     "ingest": "ingest",
     "mcp": "mcp",
     "pydantic_ai": "pydantic-ai",
