@@ -20,6 +20,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
   and with `exar.tools.files` (needs the `pydantic-ai` extra) configurable tools over the files below mounts.
 - `subprocess`: The subprocess runner with process limits and typed async wrappers of the command line tools `rg` and `jq`.
 - `policy`: Policies that allow, refuse, or ask for approval of actions.
+- `memory`: Memories over entries in process and files, with tools for language models.
 
 Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
         agents,
         errors,
         helpers,
+        memory,
         otel,
         policy,
         schema,
@@ -50,6 +52,7 @@ __all__ = [
     "agents",
     "errors",
     "helpers",
+    "memory",
     "otel",
     "policy",
     "schema",
