@@ -33,6 +33,7 @@ and a missing extra surfaces as an `AttributeError` that names it:
 - `exar.pydantic_ai`: Runs of natively configured pydantic-ai agents as exar agents, their instrumentation,
   an effect gate, toolsets, and guards, needs the `pydantic-ai` extra.
 - `exar.mcp`: Serving tools over MCP, needs the `mcp` extra.
+- `exar.a2a`: Serving and calling agents over A2A, needs the `a2a` extra.
 - `exar.ingest`: Parsing, chunking, and syncing documents, each backend needs the extra of its name.
 """
 
@@ -45,6 +46,7 @@ from .errors import MissingExtra
 
 if TYPE_CHECKING:
     from . import (
+        a2a,
         agents,
         bpmn,
         cbrkit,
@@ -65,6 +67,7 @@ if TYPE_CHECKING:
     )
 
 __all__ = [
+    "a2a",
     "agents",
     "bpmn",
     "cbrkit",
@@ -85,6 +88,7 @@ __all__ = [
 ]
 
 _EXTRAS = {
+    "a2a": "a2a",
     "bpmn": "bpmn",
     "cbrkit": "cbrkit",
     "ingest": "ingest",
