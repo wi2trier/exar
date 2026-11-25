@@ -26,6 +26,7 @@ Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
 
 - `exar.cbrkit`: Case-based reasoning by cbrkit, memories over its storages and its retrieval metrics, needs the `cbrkit` extra.
+- `exar.ingest`: Parsing, chunking, and syncing documents, each backend needs the extra of its name.
 """
 
 from importlib import import_module
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
         cbrkit,
         errors,
         helpers,
+        ingest,
         memory,
         otel,
         policy,
@@ -55,6 +57,7 @@ __all__ = [
     "cbrkit",
     "errors",
     "helpers",
+    "ingest",
     "memory",
     "otel",
     "policy",
@@ -66,6 +69,7 @@ __all__ = [
 
 _EXTRAS = {
     "cbrkit": "cbrkit",
+    "ingest": "ingest",
 }
 """The extra that every integration needs, by module name."""
 
