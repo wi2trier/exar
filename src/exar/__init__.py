@@ -37,6 +37,8 @@ and a missing extra surfaces as an `AttributeError` that names it:
   needs the `claude-agent-sdk` extra.
 - `exar.mcp`: Serving tools over MCP, needs the `mcp` extra.
 - `exar.a2a`: Serving and calling agents over A2A, needs the `a2a` extra.
+- `exar.eval`: pydantic-evals evaluators and assessments of traces, learning curves, optimization, and exports,
+  needs the `eval` extra.
 - `exar.ingest`: Parsing, chunking, and syncing documents, each backend needs the extra of its name.
 """
 
@@ -55,6 +57,7 @@ if TYPE_CHECKING:
         cbrkit,
         claude_agent_sdk,
         errors,
+        eval,
         experience,
         helpers,
         ingest,
@@ -78,6 +81,7 @@ __all__ = [
     "cbrkit",
     "claude_agent_sdk",
     "errors",
+    "eval",
     "experience",
     "helpers",
     "ingest",
@@ -99,6 +103,7 @@ _EXTRAS = {
     "bpmn": "bpmn",
     "cbrkit": "cbrkit",
     "claude_agent_sdk": "claude-agent-sdk",
+    "eval": "eval",
     "ingest": "ingest",
     "mcp": "mcp",
     "pydantic_ai": "pydantic-ai",
