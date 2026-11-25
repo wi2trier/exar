@@ -32,6 +32,7 @@ and a missing extra surfaces as an `AttributeError` that names it:
 - `exar.bpmn`: BPMN processes as agents, over the process graphs of cbrkit run by pydantic-graph, needs the `bpmn` extra.
 - `exar.pydantic_ai`: Runs of natively configured pydantic-ai agents as exar agents, their instrumentation,
   an effect gate, toolsets, and guards, needs the `pydantic-ai` extra.
+- `exar.mcp`: Serving tools over MCP, needs the `mcp` extra.
 - `exar.ingest`: Parsing, chunking, and syncing documents, each backend needs the extra of its name.
 """
 
@@ -51,6 +52,7 @@ if TYPE_CHECKING:
         experience,
         helpers,
         ingest,
+        mcp,
         memory,
         otel,
         policy,
@@ -70,6 +72,7 @@ __all__ = [
     "experience",
     "helpers",
     "ingest",
+    "mcp",
     "memory",
     "otel",
     "policy",
@@ -85,6 +88,7 @@ _EXTRAS = {
     "bpmn": "bpmn",
     "cbrkit": "cbrkit",
     "ingest": "ingest",
+    "mcp": "mcp",
     "pydantic_ai": "pydantic-ai",
 }
 """The extra that every integration needs, by module name."""
