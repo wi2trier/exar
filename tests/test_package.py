@@ -27,6 +27,34 @@ def test_core_imports_no_extras() -> None:
     assert not {"exar.eval", "exar.ingest"} & modules
 
 
+def test_spec_needs_extras_only_for_the_tools_it_lists() -> None:
+    code = """
+import sys
+
+import pydantic_ai
+
+for name in ("sqlalchemy", "httpx2", "trafilatura", "markdownify", "duckdb", "polars", "PIL", "cv2"):
+    sys.modules[name] = None
+
+from exar.errors import MissingExtra
+
+from exar.spec import Spec, build
+
+assert len(build(Spec.model_validate({"tools": [{"kind": "ls", "mounts": []}]}), {}).tools) == 1
+
+for tool in ({"kind": "sql", "engine": "db"}, {"kind": "table", "mounts": []}, {"kind": "view", "mounts": []}):
+    try:
+        build(Spec.model_validate({"tools": [tool]}), {})
+    except MissingExtra as error:
+        print(error)
+"""
+    output = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, check=True
+    ).stdout
+
+    assert all(f"exar[{extra}]" in output for extra in ("sql", "table", "media"))
+
+
 def test_processes_name_the_bpmn_extra() -> None:
     code = """
 import sys

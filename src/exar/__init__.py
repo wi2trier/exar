@@ -24,6 +24,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 - `workflows`: Workflow recipes such as chaining, routing, and the 4R cycle.
 - `experience`: The CBR cycle over past runs of any agent (Meta-CBR): retrieve, reuse, revise, and retain,
   whose storage of runs needs the `cbrkit` extra and whose reuse of processes needs the `bpmn` extra.
+- `spec`: Applications described as data in a JSON file and built into objects by name.
 
 Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
@@ -63,6 +64,7 @@ if TYPE_CHECKING:
         policy,
         pydantic_ai,
         schema,
+        spec,
         subprocess,
         tools,
         typing,
@@ -85,6 +87,7 @@ __all__ = [
     "policy",
     "pydantic_ai",
     "schema",
+    "spec",
     "subprocess",
     "tools",
     "typing",
