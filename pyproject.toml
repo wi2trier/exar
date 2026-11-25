@@ -100,6 +100,8 @@ convention = "google"
 [tool.uv]
 default-groups = ["test", "docs"]
 
-# cbrkit 2 is unreleased, use the sibling checkout until then.
+# cbrkit 2 is unreleased, use its dev branch until then.
+# Swap in the sibling checkout to develop against local changes.
 [tool.uv.sources]
-cbrkit = { path = "../cbrkit", editable = true }
+cbrkit = { git = "https://github.com/wi2trier/cbrkit", branch = "dev" }
+# cbrkit = { path = "../cbrkit", editable = true }

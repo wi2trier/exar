@@ -184,7 +184,7 @@ wheels = [
 [[package]]
 name = "cbrkit"
 version = "1.7.1"
-source = { editable = "../cbrkit" }
+source = { git = "https://github.com/wi2trier/cbrkit?branch=dev#92a8f6b06af8520b61b741966a31121c48b50079" }
 dependencies = [
     { name = "filelock" },
     { name = "griffelib" },
@@ -200,55 +200,6 @@ dependencies = [
 [package.optional-dependencies]
 bpmn = [
     { name = "xsdata" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiosqlite", marker = "extra == 'sqlite-vec'", specifier = ">=0.22,<1" },
-    { name = "bm25s", extras = ["core", "stem", "indexing"], marker = "extra == 'bm25'", specifier = ">=0.3,<1" },
-    { name = "cbrkit", extras = ["api", "bm25", "bpmn", "cli", "fastexcel", "graphs", "graphviz", "http", "lancedb", "mcp", "pgvector", "pydantic-ai", "sql", "sqlite-vec", "transformers", "zvec"], marker = "extra == 'all'" },
-    { name = "cbrkit", extras = ["cli"], marker = "extra == 'api'" },
-    { name = "cbrkit", extras = ["cli"], marker = "extra == 'mcp'" },
-    { name = "cbrkit", extras = ["sql"], marker = "extra == 'pgvector'" },
-    { name = "cbrkit", extras = ["sql"], marker = "extra == 'sqlite-vec'" },
-    { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.165,<1" },
-    { name = "fastexcel", marker = "extra == 'fastexcel'", specifier = ">=0.21,<1" },
-    { name = "fastmcp", marker = "extra == 'mcp'", specifier = ">=4,<5" },
-    { name = "filelock", specifier = ">=4,<5" },
-    { name = "griffelib", specifier = ">=2,<3" },
-    { name = "httpx2", marker = "extra == 'http'", specifier = ">=2,<3" },
-    { name = "lancedb", marker = "extra == 'lancedb'", specifier = ">=0.41,<1" },
-    { name = "networkx", marker = "extra == 'graphs'", specifier = ">=3,<4" },
-    { name = "numpy", specifier = ">=2,<3" },
-    { name = "orjson", specifier = ">=3,<4" },
-    { name = "pgvector", marker = "extra == 'pgvector'", specifier = ">=0.5,<1" },
-    { name = "polars", specifier = ">=2,<3" },
-    { name = "pydantic", specifier = ">=2,<3" },
-    { name = "pydantic-ai-slim", marker = "extra == 'pydantic-ai'", specifier = ">=2,<3" },
-    { name = "pygraphviz", marker = "extra == 'graphviz'", specifier = ">=2,<3" },
-    { name = "pyyaml", specifier = ">=6,<7" },
-    { name = "rapidfuzz", specifier = ">=3,<4" },
-    { name = "rustworkx", marker = "extra == 'graphs'", specifier = ">=0.18,<1" },
-    { name = "scipy", specifier = ">=1,<2" },
-    { name = "sentence-transformers", marker = "extra == 'transformers'", specifier = ">=6,<7" },
-    { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'sql'", specifier = ">=2,<3" },
-    { name = "sqlite-vec", marker = "extra == 'sqlite-vec'", specifier = ">=0.1,<1" },
-    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.29,<1" },
-    { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.54,<1" },
-    { name = "xsdata", marker = "extra == 'bpmn'", specifier = ">=26,<27" },
-    { name = "zvec", marker = "extra == 'zvec'", specifier = ">=0.8,<1" },
-]
-provides-extras = ["http", "pydantic-ai", "bm25", "transformers", "bpmn", "graphs", "graphviz", "fastexcel", "lancedb", "pgvector", "sql", "sqlite-vec", "zvec", "api", "cli", "mcp", "all"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "scipy-stubs", specifier = ">=1,<2" },
-    { name = "types-networkx", specifier = ">=3,<4" },
-]
-docs = [{ name = "pdoc", specifier = ">=16,<17" }]
-test = [
-    { name = "pytest", specifier = ">=9,<10" },
-    { name = "pytest-cov", specifier = ">=7,<8" },
 ]
 
 [[package]]
@@ -1150,8 +1101,8 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "a2a-sdk", extras = ["http-server"], marker = "extra == 'a2a'", specifier = ">=1,<2" },
-    { name = "cbrkit", marker = "extra == 'cbrkit'", editable = "../cbrkit" },
-    { name = "cbrkit", extras = ["bpmn"], marker = "extra == 'bpmn'", editable = "../cbrkit" },
+    { name = "cbrkit", marker = "extra == 'cbrkit'", git = "https://github.com/wi2trier/cbrkit?branch=dev" },
+    { name = "cbrkit", extras = ["bpmn"], marker = "extra == 'bpmn'", git = "https://github.com/wi2trier/cbrkit?branch=dev" },
     { name = "chonkie", marker = "extra == 'chonkie'", specifier = ">=1,<2" },
     { name = "chonkie", extras = ["semantic"], marker = "extra == 'semantic'", specifier = ">=1,<2" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-agent-sdk'", specifier = ">=0.2,<1" },
@@ -4533,11 +4484,11 @@ wheels = [
 
 [[package]]
 name = "xlsxwriter"
-version = "3.3.3"
+version = "3.3.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/4e/e3df3f3de53aea3a78b9493192a8861f88d5cd4b1664e99fc3d70712bebe/xlsxwriter-3.3.3.tar.gz", hash = "sha256:ad3743bd5f96019ee75aae19a51e9c26faf03f218670b934dac1159692d0d5e3", size = 235065, upload-time = "2026-11-20T09:31:39.512Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/a7/2d344f4a7119f2bd2ef6c672f99af610c5f3e11b024846680d5895cf41f6/xlsxwriter-3.3.4.tar.gz", hash = "sha256:3512f4210622d4040e0f2882e2caf7263a3fd8be876704304314f0e275377fea", size = 239201, upload-time = "2026-11-22T12:41:19.899Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/bd/8314de2aec89ba343957b3a0d13d7fb0910b57955cbe9c334c6c2d3e512d/xlsxwriter-3.3.3-py3-none-any.whl", hash = "sha256:2b83c5e184d872275e87718ebc88688acc258a50fc84dcad965b3d10be6e345f", size = 191291, upload-time = "2026-11-20T09:31:38.272Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/f4/42d98147a0e3e2ae905a1c51bd6fcac1e551e4223b35fbf5d9769f59ffb6/xlsxwriter-3.3.4-py3-none-any.whl", hash = "sha256:da62fecb24fdd0f003c874c86109b9e1245ae89533052745ab85a085eb2b04d7", size = 192178, upload-time = "2026-11-22T12:41:18.699Z" },
 ]
 
 [[package]]
