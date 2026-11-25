@@ -119,7 +119,7 @@ async def test_an_untrusted_server_executes_but_the_listed_reads() -> None:
     assert "Look a record up" not in connected_instructions
 
 
-async def test_a_lost_connection_withholds_the_tools_and_fails_the_call(
+async def test_a_lost_connection_keeps_the_tools_and_fails_the_calls(
     connected: McpClient[None], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def unreachable(*_args: object) -> None:
@@ -127,25 +127,25 @@ async def test_a_lost_connection_withholds_the_tools_and_fails_the_call(
             CONNECTION_CLOSED, "Connection closed"
         )
 
+    before = await _turn(connected)
     monkeypatch.setattr(connected.toolset, "call_tool", unreachable)
-    _, _, messages = await _turn(
-        connected, ToolCallPart("crm_lookup", {"key": "a"}, "call")
-    )
-    returned = [
-        part
+    lost = await _turn(connected, ToolCallPart("crm_lookup", {"key": "a"}, "call"))
+    down = await _turn(connected, ToolCallPart("crm_lookup", {"key": "a"}, "call"))
+
+    assert not connected.connected
+    assert lost[:2] == down[:2] == before[:2]
+    assert "could not be reached" in _returned(lost[2])
+    assert "crm are unavailable" in _returned(down[2])
+
+
+def _returned(messages: list[ModelMessage]) -> str:
+    return "\n".join(
+        part.model_response_str()
         for message in messages
         if isinstance(message, ModelRequest)
         for part in message.parts
         if isinstance(part, ToolReturnPart)
-    ]
-
-    assert "could not be reached" in returned[0].model_response_str()
-    assert connected.tools is None
-
-    names, instructions, _ = await _turn(connected)
-    assert not names
-    assert "crm is unavailable" not in instructions
-    assert "crm are unavailable" in instructions
+    )
 
 
 async def test_a_server_is_asked_for_its_tools_again() -> None:

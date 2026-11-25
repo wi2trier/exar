@@ -3,9 +3,9 @@
 `McpClient` holds one `MCPToolset` entered while `supervised` runs, reconnecting with a growing backoff
 after a failure.
 A run never connects itself: the toolset of `McpClient.agent_toolset` offers the tools the server listed
-while it is reachable, none and a short notice while it is not,
-and a call the connection fails returns a failed result,
-so an unreachable server withholds its own tools and fails no turn.
+when it last connected, with its instructions then, and only a notice before it ever connected.
+A call while the connection is down fails at once with that notice, and one the connection fails returns a failed result,
+so an outage changes neither the tools nor the instructions of a run, which keeps its cached prefix, and fails no turn.
 
 Every tool declares the effect the host derives its offering and approval from (`exar.pydantic_ai.EFFECT`):
 the one `effects` names for it, else what the hints of a `trusted` server say (`exar.mcp.annotated_effect`),
@@ -33,6 +33,7 @@ from pydantic_ai import ModelRetry, RunContext, ToolReturn
 from pydantic_ai.exceptions import ToolFailed
 from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.messages import InstructionPart
+from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.toolsets import AbstractToolset, ToolsetTool, WrapperToolset
 
 from .mcp import annotated_effect
@@ -42,6 +43,8 @@ from .tools.batch import as_return
 from .typing import Effect
 
 __all__ = ["McpClient"]
+
+type _Instructions = str | InstructionPart | Sequence[str | InstructionPart] | None
 
 logger = logging.getLogger(__name__)
 
@@ -85,8 +88,8 @@ class McpClient[D]:
         unavailable: Words the notice of a server without tools for a run.
 
     Attributes:
-        tools: The offered tools as the server lists them by name, `None` while the server is unreachable.
-        error: Why the server last failed.
+        tools: The offered tools as the server last listed them by name, `None` before it ever connected.
+        error: Why the server last failed, `None` while it is connected.
     """
 
     name: str
@@ -100,7 +103,23 @@ class McpClient[D]:
     unavailable: Callable[[RunContext[D]], str] | None = None
     tools: Mapping[str, mcp_types.Tool] | None = field(default=None, init=False)
     error: str | None = field(default=None, init=False)
+    _definitions: Mapping[str, ToolDefinition] = field(
+        default_factory=dict[str, ToolDefinition], init=False, repr=False
+    )
+    _instructions: _Instructions = field(default=None, init=False, repr=False)
     _lost: asyncio.Event = field(default_factory=asyncio.Event, init=False, repr=False)
+
+    @property
+    def connected(self) -> bool:
+        """Whether the server is reachable with the tools it listed."""
+        return self.tools is not None and self.error is None
+
+    def notice(self, ctx: RunContext[D]) -> str:
+        """Why the server offers nothing right now, in the words of `unavailable`."""
+        if self.unavailable is not None:
+            return self.unavailable(ctx)
+
+        return f"The tools of the MCP server {self.name} are unavailable right now."
 
     def agent_toolset(self) -> AbstractToolset[D]:
         """The server's tools as a run offers them, prefixed by its name."""
@@ -136,13 +155,12 @@ class McpClient[D]:
         logger.info("MCP server %s connected with %d tools", self.name, len(self.tools))
 
     def lose(self, exc: Exception) -> None:
-        """Withhold the tools after *exc* and have the connection rebuilt."""
+        """Fail calls after *exc*, still offering the tools, and have the connection rebuilt."""
         error = truncate_line(f"{type(exc).__name__}: {exc}", _MAX_ERROR_CHARS)
 
         if error != self.error:
             logger.warning("MCP server %s is unreachable: %s", self.name, error)
 
-        self.tools = None
         self.error = error
         self._lost.set()
 
@@ -220,10 +238,8 @@ class _McpToolset[D](WrapperToolset[D]):
     async def __aexit__(self, *args: object) -> bool | None:
         return None
 
-    async def get_instructions(
-        self, ctx: RunContext[D]
-    ) -> str | InstructionPart | Sequence[str | InstructionPart] | None:
-        """The instructions of a trusted server, or why a server offers no tools.
+    async def get_instructions(self, ctx: RunContext[D]) -> _Instructions:
+        """The instructions of a trusted server as it last sent them, or why a server never offered tools to a run.
 
         A trusted server's instructions are operator text, appended as a
         change when a later connection brings others, while an untrusted
@@ -231,46 +247,48 @@ class _McpToolset[D](WrapperToolset[D]):
         """
         client = self.client
 
-        if client.tools is None:
-            if client.unavailable is not None:
-                return client.unavailable(ctx)
-
-            return (
-                f"The tools of the MCP server {client.name} are unavailable right now."
-            )
+        if client.tools is None or not (client.connected or client._definitions):
+            return client.notice(ctx)
 
         if not client.trusted:
             return None
 
-        return await self.wrapped.get_instructions(ctx)
+        if client.connected:
+            client._instructions = await self.wrapped.get_instructions(ctx)
+
+        return client._instructions
 
     async def get_tools(self, ctx: RunContext[D]) -> dict[str, ToolsetTool[D]]:
-        """The offered tools the server lists, none while it is unreachable."""
-        offered = self.client.tools
+        """The offered tools as the server last listed them, each declaring its effect."""
+        client = self.client
+        offered = client.tools
 
         if offered is None:
             return {}
 
-        try:
-            listed = await self.wrapped.get_tools(ctx)
-        except Exception as exc:  # noqa: BLE001
-            self.client.lose(exc)
-            return {}
+        if client.connected:
+            try:
+                listed = await self.wrapped.get_tools(ctx)
+            except Exception as exc:  # noqa: BLE001
+                client.lose(exc)
+            else:
+                client._definitions = {
+                    name: replace(
+                        tool.tool_def,
+                        metadata={
+                            **(tool.tool_def.metadata or {}),
+                            EFFECT: client.effect_of(offered[name]),
+                        },
+                    )
+                    for name, tool in listed.items()
+                    if name in offered
+                }
 
         return {
             name: replace(
-                tool,
-                toolset=self,
-                tool_def=replace(
-                    tool.tool_def,
-                    metadata={
-                        **(tool.tool_def.metadata or {}),
-                        EFFECT: self.client.effect_of(offered[name]),
-                    },
-                ),
+                client.toolset.tool_for_tool_def(definition, ctx=ctx), toolset=self
             )
-            for name, tool in listed.items()
-            if name in offered
+            for name, definition in client._definitions.items()
         }
 
     async def call_tool(
@@ -283,7 +301,11 @@ class _McpToolset[D](WrapperToolset[D]):
         """Call the tool, a failed connection failing the call rather than the run, and its result a `ToolReturn`.
 
         A server with a `caller` is called on a connection of the call's own.
+        While the connection is down, the call fails at once.
         """
+        if not self.client.connected:
+            raise ToolFailed(self.client.notice(ctx))
+
         try:
             if (caller := self.client.caller) is None:
                 return as_return(
