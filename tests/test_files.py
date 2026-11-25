@@ -1,20 +1,24 @@
 import errno
+import io
 import json
 import os
 import shutil
 from pathlib import Path
 
+import PIL.Image
 import pytest
 from pydantic import TypeAdapter
-from pydantic_ai import ToolReturn
+from pydantic_ai import BinaryContent, ToolReturn
 
 from exar.helpers import frozendict, get_name
+from exar.ingest import MAX_DIMENSION
 from exar.memory import Mount
 from exar.memory.mounts import canonical, narrow, open_beneath, resolve
 from exar.tools import Retry, effect_of
 from exar.tools.batch import unpack
 from exar.tools.common import resolve_file_or_retry
 from exar.tools.files import DocumentRead, Grep, Jq, Ls, Read
+from exar.tools.media import BinaryRead, View
 
 
 def mounts(*pairs: tuple[Path, str]) -> list[Mount]:
@@ -198,6 +202,69 @@ async def test_ls(tmp_path: Path) -> None:
         Retry, match="Directory 'ghost' does not exist. This tool addresses /notes."
     ):
         await ls("ghost")
+
+
+async def test_view(tmp_path: Path) -> None:
+    def png(color: str) -> bytes:
+        buffer = io.BytesIO()
+        PIL.Image.new("RGB", (8, 8), color).save(buffer, format="PNG")
+
+        return buffer.getvalue()
+
+    def gif(frames: int) -> bytes:
+        buffer = io.BytesIO()
+        images = [
+            PIL.Image.new("RGB", (8, 8), (index * 20, 0, 0)) for index in range(frames)
+        ]
+        images[0].save(
+            buffer, format="GIF", save_all=True, append_images=images[1:], duration=100
+        )
+
+        return buffer.getvalue()
+
+    (tmp_path / "a.png").write_bytes(png("red"))
+    PIL.Image.effect_noise((3000, 1500), 64).save(tmp_path / "large.png")
+    (tmp_path / "anim.gif").write_bytes(gif(6))
+    (tmp_path / "a.md").write_text("text")
+    view = View(
+        mounts=mounts((tmp_path, "")),
+        max_frames=4,
+        max_images=2,
+        hint=lambda refusal, path: " Use read.",
+    )
+
+    still = await view([BinaryRead("a.png")])
+    large = unpack(await view([BinaryRead("large.png")])).files[0]
+    sampled = await view([BinaryRead("anim.gif")])
+    failed = await view(
+        [BinaryRead("a.png"), BinaryRead("a.md"), BinaryRead("a.png", pages="1")]
+    )
+
+    assert still.metadata[0].media_type == "image/png"
+    assert isinstance(large, BinaryContent)
+    assert PIL.Image.open(io.BytesIO(large.data)).size == (
+        MAX_DIMENSION,
+        MAX_DIMENSION // 2,
+    )
+    assert sampled.metadata[0].frames == 2
+    assert [
+        content.media_type
+        for content in unpack(sampled).files
+        if isinstance(content, BinaryContent)
+    ] == ["image/png"] * 2
+    assert (
+        "is not a format a vision model can be shown Use read." in unpack(failed).text
+    )
+    assert "pages= is only valid for PDF inputs" in unpack(failed).text
+
+    with pytest.raises(Retry, match="At most 2 files"):
+        await view(
+            [
+                BinaryRead("a.png"),
+                BinaryRead("anim.gif"),
+                BinaryRead("a.png", pages="2"),
+            ]
+        )
 
 
 def test_symlinks_and_special_files_are_never_followed(tmp_path: Path) -> None:
