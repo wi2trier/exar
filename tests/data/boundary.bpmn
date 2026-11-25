@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" id="definitions" targetNamespace="https://github.com/wi2trier/exar">
+  <process id="robust">
+    <startEvent id="start"/>
+    <task id="slow" name="slow"/>
+    <boundaryEvent id="too_slow" attachedToRef="slow">
+      <timerEventDefinition><timeDuration>PT0.05S</timeDuration></timerEventDefinition>
+    </boundaryEvent>
+    <subProcess id="attempt">
+      <startEvent id="attempt_start"/>
+      <task id="risky" name="risky"/>
+      <endEvent id="attempt_end"/>
+      <sequenceFlow id="a1" sourceRef="attempt_start" targetRef="risky"/>
+      <sequenceFlow id="a2" sourceRef="risky" targetRef="attempt_end"/>
+    </subProcess>
+    <boundaryEvent id="failed" attachedToRef="attempt">
+      <errorEventDefinition/>
+    </boundaryEvent>
+    <task id="recover" name="recover"/>
+    <endEvent id="end"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="slow"/>
+    <sequenceFlow id="f2" sourceRef="slow" targetRef="attempt"/>
+    <sequenceFlow id="f3" sourceRef="too_slow" targetRef="attempt"/>
+    <sequenceFlow id="f4" sourceRef="attempt" targetRef="end"/>
+    <sequenceFlow id="f5" sourceRef="failed" targetRef="recover"/>
+    <sequenceFlow id="f6" sourceRef="recover" targetRef="end"/>
+  </process>
+</definitions>

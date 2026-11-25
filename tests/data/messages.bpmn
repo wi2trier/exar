@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" id="definitions" targetNamespace="https://github.com/wi2trier/exar">
+  <collaboration id="collaboration">
+    <participant id="shop" name="Shop" processRef="order"/>
+    <participant id="customer" name="Customer"/>
+    <messageFlow id="m1" sourceRef="ask" targetRef="customer"/>
+    <messageFlow id="m2" sourceRef="customer" targetRef="answer"/>
+  </collaboration>
+  <process id="order">
+    <startEvent id="start"/>
+    <sendTask id="ask" name="Ask customer"/>
+    <eventBasedGateway id="wait"/>
+    <intermediateCatchEvent id="answer">
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+    <intermediateCatchEvent id="timeout">
+      <timerEventDefinition><timeDuration>PT0.05S</timeDuration></timerEventDefinition>
+    </intermediateCatchEvent>
+    <task id="confirm" name="confirm"/>
+    <endEvent id="end"/>
+    <endEvent id="gave_up"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="ask"/>
+    <sequenceFlow id="f2" sourceRef="ask" targetRef="wait"/>
+    <sequenceFlow id="f3" sourceRef="wait" targetRef="answer"/>
+    <sequenceFlow id="f4" sourceRef="wait" targetRef="timeout"/>
+    <sequenceFlow id="f5" sourceRef="answer" targetRef="confirm"/>
+    <sequenceFlow id="f6" sourceRef="confirm" targetRef="end"/>
+    <sequenceFlow id="f7" sourceRef="timeout" targetRef="gave_up"/>
+  </process>
+</definitions>

@@ -27,6 +27,7 @@ Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
 
 - `exar.cbrkit`: Case-based reasoning by cbrkit, memories over its storages and its retrieval metrics, needs the `cbrkit` extra.
+- `exar.bpmn`: BPMN processes as agents, over the process graphs of cbrkit run by pydantic-graph, needs the `bpmn` extra.
 - `exar.ingest`: Parsing, chunking, and syncing documents, each backend needs the extra of its name.
 """
 
@@ -40,6 +41,7 @@ from .errors import MissingExtra
 if TYPE_CHECKING:
     from . import (
         agents,
+        bpmn,
         cbrkit,
         errors,
         helpers,
@@ -56,6 +58,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "agents",
+    "bpmn",
     "cbrkit",
     "errors",
     "helpers",
@@ -71,6 +74,7 @@ __all__ = [
 ]
 
 _EXTRAS = {
+    "bpmn": "bpmn",
     "cbrkit": "cbrkit",
     "ingest": "ingest",
 }

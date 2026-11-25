@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" id="definitions" targetNamespace="https://github.com/wi2trier/exar">
+  <process id="review">
+    <startEvent id="start"/>
+    <serviceTask id="score" name="scorer"/>
+    <exclusiveGateway id="split" default="reject_flow"/>
+    <userTask id="accept" name="Accept" agent="publisher"/>
+    <task id="reject" name="rejecter"/>
+    <exclusiveGateway id="merge"/>
+    <endEvent id="end"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="score"/>
+    <sequenceFlow id="f2" sourceRef="score" targetRef="split"/>
+    <sequenceFlow id="accept_flow" sourceRef="split" targetRef="accept">
+      <conditionExpression>score &gt;= 0.7</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="reject_flow" sourceRef="split" targetRef="reject"/>
+    <sequenceFlow id="f3" sourceRef="accept" targetRef="merge"/>
+    <sequenceFlow id="f4" sourceRef="reject" targetRef="merge"/>
+    <sequenceFlow id="f5" sourceRef="merge" targetRef="end"/>
+  </process>
+</definitions>

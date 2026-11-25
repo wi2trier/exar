@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" id="definitions" targetNamespace="https://github.com/wi2trier/exar">
+  <process id="refine">
+    <startEvent id="start"/>
+    <exclusiveGateway id="merge"/>
+    <task id="draft" name="drafter"/>
+    <exclusiveGateway id="check" default="done_flow"/>
+    <endEvent id="end"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="merge"/>
+    <sequenceFlow id="f2" sourceRef="merge" targetRef="draft"/>
+    <sequenceFlow id="f3" sourceRef="draft" targetRef="check"/>
+    <sequenceFlow id="again_flow" sourceRef="check" targetRef="merge">
+      <conditionExpression>needs_revision</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="done_flow" sourceRef="check" targetRef="end"/>
+  </process>
+</definitions>

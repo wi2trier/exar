@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" id="definitions" targetNamespace="https://github.com/wi2trier/exar">
+  <process id="research">
+    <startEvent id="start"/>
+    <parallelGateway id="fork"/>
+    <task id="web" name="web"/>
+    <task id="papers" name="papers"/>
+    <parallelGateway id="join"/>
+    <task id="combine" name="combine"/>
+    <endEvent id="end"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="fork"/>
+    <sequenceFlow id="f2" sourceRef="fork" targetRef="web"/>
+    <sequenceFlow id="f3" sourceRef="fork" targetRef="papers"/>
+    <sequenceFlow id="f4" sourceRef="web" targetRef="join"/>
+    <sequenceFlow id="f5" sourceRef="papers" targetRef="join"/>
+    <sequenceFlow id="f6" sourceRef="join" targetRef="combine"/>
+    <sequenceFlow id="f7" sourceRef="combine" targetRef="end"/>
+  </process>
+</definitions>

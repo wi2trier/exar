@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" id="definitions" targetNamespace="https://github.com/wi2trier/exar">
+  <process id="notify">
+    <startEvent id="start"/>
+    <inclusiveGateway id="fork" default="log_flow"/>
+    <task id="mail" name="mail"/>
+    <task id="chat" name="chat"/>
+    <task id="log" name="log"/>
+    <inclusiveGateway id="join"/>
+    <task id="done" name="done"/>
+    <endEvent id="end"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="fork"/>
+    <sequenceFlow id="mail_flow" sourceRef="fork" targetRef="mail">
+      <conditionExpression>wants_mail</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="chat_flow" sourceRef="fork" targetRef="chat">
+      <conditionExpression>wants_chat</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="log_flow" sourceRef="fork" targetRef="log"/>
+    <sequenceFlow id="f2" sourceRef="mail" targetRef="join"/>
+    <sequenceFlow id="f3" sourceRef="chat" targetRef="join"/>
+    <sequenceFlow id="f4" sourceRef="log" targetRef="join"/>
+    <sequenceFlow id="f5" sourceRef="join" targetRef="done"/>
+    <sequenceFlow id="f6" sourceRef="done" targetRef="end"/>
+  </process>
+</definitions>
