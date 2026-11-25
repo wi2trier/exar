@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
+from pydantic_ai import ToolReturn
 
 from exar.agents import RunConfig, run_async
 from exar.errors import Conflict, Refused
@@ -12,8 +13,11 @@ from exar.memory import (
     GatedMemory,
     InMemoryMemory,
     Mount,
+    memory_tools,
 )
 from exar.policy import EffectPolicy, allow_all
+from exar.tools import Retry, effect_of
+from exar.tools.files import file_tools
 from exar.typing import Action, Add, Changes, Remove, Update
 
 
@@ -229,3 +233,31 @@ async def test_file_memory(tmp_path: Path) -> None:
         "Changes",
         "Conflict",
     ]
+
+
+async def test_tools(tmp_path: Path) -> None:
+    memory = FileMemory(mounts=[Mount(source=tmp_path, target="/notes", write="allow")])
+    await memory.write(Changes(items=[note("/notes/a.md", "one two\ntwo three")]))
+    list_, grep, edit = file_tools(memory, "notes")[3:]
+
+    assert effect_of(edit) == "write"
+    assert await list_() == "/notes/a.md"
+    found = await grep("thr+ee", context=0)
+
+    assert isinstance(found, ToolReturn)
+    assert found.return_value == "/notes/a.md\n2:two three"
+
+    with pytest.raises(Retry, match="occurs 2 times"):
+        await edit("/notes/a.md", "two", "2")
+
+    assert await edit("/notes/a.md", "one", "1") == "Edited /notes/a.md."
+    assert (tmp_path / "a.md").read_text() == "1 two\ntwo three"
+
+    denied = memory_tools(
+        GatedMemory(
+            memory=InMemoryMemory[str, str](), policy=EffectPolicy(write="deny")
+        )
+    )
+
+    with pytest.raises(Retry, match="denied"):
+        await denied[2](Changes(items=[Add(value="x", reason="r")]))
