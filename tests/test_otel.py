@@ -4,6 +4,8 @@ from decimal import Decimal
 import pytest
 from opentelemetry import trace
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 
 from exar import agents, otel
@@ -12,6 +14,32 @@ from exar.errors import Refused
 from exar.otel import Usage
 from exar.policy import allow_all
 from exar.typing import Span
+from exar.workflows import Chain
+
+
+async def test_capture_composes_with_the_host_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    exported = InMemorySpanExporter()
+    host = TracerProvider()
+    host.add_span_processor(SimpleSpanProcessor(exported))
+    monkeypatch.setattr(trace, "get_tracer_provider", lambda: host)
+
+    with trace.get_tracer("host").start_as_current_span("request"):
+        recorded = await run_async(
+            Chain(agents=[FunctionAgent(func=len)]), "abc", RunConfig(policy=allow_all)
+        )
+
+    assert otel.provider() is host
+    assert [span.name for span in recorded.walk()] == [
+        "invoke_workflow Chain",
+        "invoke_agent len",
+    ]
+    assert {span.name for span in exported.get_finished_spans()} == {
+        "request",
+        "invoke_workflow Chain",
+        "invoke_agent len",
+    }
 
 
 def test_provider_warns_once_about_head_sampling(

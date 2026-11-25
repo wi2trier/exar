@@ -21,6 +21,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 - `subprocess`: The subprocess runner with process limits and typed async wrappers of the command line tools `rg` and `jq`.
 - `policy`: Policies that allow, refuse, or ask for approval of actions.
 - `memory`: Memories over entries in process and files, with tools for language models.
+- `workflows`: Workflow recipes such as chaining, routing, and the 4R cycle.
 
 Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
         subprocess,
         tools,
         typing,
+        workflows,
     )
 
 __all__ = [
@@ -65,6 +67,7 @@ __all__ = [
     "subprocess",
     "tools",
     "typing",
+    "workflows",
 ]
 
 _EXTRAS = {
