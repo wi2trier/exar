@@ -121,7 +121,10 @@ async def test_remote_agent(caplog: pytest.LogCaptureFixture) -> None:
 
     assert trace.output == 42
     assert [t.output for t in served] == [42]
-    assert (otel.usage(spent.root).input_tokens, otel.usage(spent.root).requests) == (3, 1)
+    assert (otel.usage(spent.root).input_tokens, otel.usage(spent.root).requests) == (
+        3,
+        1,
+    )
     assert "broken" in caplog.text
 
 

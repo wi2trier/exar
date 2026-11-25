@@ -404,7 +404,11 @@ def _commit(
         try:
             for write in planned:
                 document = write.document
-                partial = None if document is None else stage_write(write.path, document.dump())
+                partial = (
+                    None
+                    if document is None
+                    else stage_write(write.path, document.dump())
+                )
                 staged.append((write.path, partial))
 
             for path, partial in staged:

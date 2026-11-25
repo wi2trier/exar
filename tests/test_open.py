@@ -47,7 +47,11 @@ class StubMemory:
         return {}
 
     async def write(
-        self, changes: Changes[str, str], /, *, expected: Mapping[str, str] | None = None
+        self,
+        changes: Changes[str, str],
+        /,
+        *,
+        expected: Mapping[str, str] | None = None,
     ) -> Changes[str, str]:
         return changes
 

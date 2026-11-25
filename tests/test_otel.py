@@ -127,7 +127,10 @@ async def test_max_cost_counts_model_calls_as_they_return() -> None:
         twice, 1, RunConfig(policy=allow_all, limits=Limits(max_cost=1.0))
     )
 
-    assert (otel.usage(unpriced.root).requests, otel.usage(unpriced.root).cost) == (2, None)
+    assert (otel.usage(unpriced.root).requests, otel.usage(unpriced.root).cost) == (
+        2,
+        None,
+    )
 
 
 async def test_a_trace_is_built_only_once_it_is_read(

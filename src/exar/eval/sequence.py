@@ -67,7 +67,9 @@ class LearningCurve[I, O]:
         """Total `cost` usage of the priced model calls of the runs so far, `None` until one is priced."""
         return [
             usage.cost
-            for usage in itertools.accumulate(usage(a.trace.root) for a in self.assessments)
+            for usage in itertools.accumulate(
+                usage(a.trace.root) for a in self.assessments
+            )
         ]
 
 

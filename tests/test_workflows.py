@@ -103,7 +103,11 @@ def test_nested_trace_policy_and_limits() -> None:
 
     assert trace.output == 13
     assert otel.operation(trace.root) == otel.operation(nested) == "invoke_workflow"
-    assert (otel.agent_name(first), otel.workflow_name(nested), otel.agents(trace.root)) == (
+    assert (
+        otel.agent_name(first),
+        otel.workflow_name(nested),
+        otel.agents(trace.root),
+    ) == (
         "half",
         "Chain",
         ("Chain", "half", "triple"),

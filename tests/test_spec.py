@@ -78,7 +78,12 @@ def spec_file(tmp_path: Path) -> Path:
                 },
                 "tools": [
                     {"kind": "grep", "mounts": [mount], "engine": {"kind": "python"}},
-                    {"kind": "sql", "engine": "db", "prefix": "crm_", "tables": ["orders"]},
+                    {
+                        "kind": "sql",
+                        "engine": "db",
+                        "prefix": "crm_",
+                        "tables": ["orders"],
+                    },
                     {"kind": "web_fetch", "client": "web", "session": "run"},
                 ],
                 "policy": {"kind": "rules", "by_name": {"rejecter": "deny"}},
@@ -158,7 +163,6 @@ def test_cycle() -> None:
         build(spec, {})
 
 
-
 async def test_case_base(tmp_path: Path) -> None:
     from cbrkit.io import Source, companion
     from cbrkit.spec import infer, write
@@ -171,7 +175,9 @@ async def test_case_base(tmp_path: Path) -> None:
     spec = Spec.model_validate(
         {
             "$schema": "https://example.org/exar.json",
-            "tools": [{"kind": "case_base", "casebase": str(casebase), "prefix": "cases_"}],
+            "tools": [
+                {"kind": "case_base", "casebase": str(casebase), "prefix": "cases_"}
+            ],
         }
     )
 

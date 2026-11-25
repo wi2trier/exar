@@ -255,7 +255,9 @@ class _Executor[I, O](AgentExecutor):
                 await updater.add_artifact(
                     _parts(trace.output),
                     name="result",
-                    metadata={"usage": _USAGE.dump_python(usage(trace.root), mode="json")},
+                    metadata={
+                        "usage": _USAGE.dump_python(usage(trace.root), mode="json")
+                    },
                 )
                 await updater.complete()
             case ("failed", error):

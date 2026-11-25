@@ -385,7 +385,12 @@ async def test_traced_and_typed(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert trace.output.summary == 3
     assert otel.operation(trace.root) == "invoke_workflow"
-    assert sorted(otel.agents(trace.root)) == ["BpmnProcess", "combine", "papers", "web"]
+    assert sorted(otel.agents(trace.root)) == [
+        "BpmnProcess",
+        "combine",
+        "papers",
+        "web",
+    ]
     assert {span.name for span in trace.walk() if span.scope == "logfire"} >= {
         "run graph process",
         "run node combine",

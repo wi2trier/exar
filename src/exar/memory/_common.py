@@ -57,10 +57,7 @@ def top_hits[K, V](
         else nlargest(limit, scores, key=scores.__getitem__)
     )
 
-    return [
-        Hit(key=key, value=values[key], score=scores[key])
-        for key in ranked
-    ]
+    return [Hit(key=key, value=values[key], score=scores[key]) for key in ranked]
 
 
 def _fuse[K, V](

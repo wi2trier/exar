@@ -135,7 +135,9 @@ async def test_traces_the_run_in_a_workflow() -> None:
 
     assert trace.output == "cbr"
     assert otel.agents(trace.root) == ("Chain", "researcher")
-    assert [(otel.tool_name(span), otel.tool_call_arguments(span)) for span in tools] == [
+    assert [
+        (otel.tool_name(span), otel.tool_call_arguments(span)) for span in tools
+    ] == [
         ("search", {"query": "bad"}),
         ("search", {"query": "cbr"}),
     ]
@@ -148,7 +150,9 @@ async def test_traces_the_run_in_a_workflow() -> None:
         "tool",
     ]
     assert (
-        otel.usage(trace.root).input_tokens == sum(otel.usage(chat).input_tokens for chat in chats) > 0
+        otel.usage(trace.root).input_tokens
+        == sum(otel.usage(chat).input_tokens for chat in chats)
+        > 0
     )
 
 
@@ -213,8 +217,13 @@ async def test_usage_counts_every_request_of_nested_and_failed_runs() -> None:
     assert len(chats) == 3
     assert otel.usage(led) == sum((otel.usage(chat) for chat in chats), Usage())
     assert failed.status == "error" and otel.usage(failed).input_tokens > 0
-    assert trace.output == otel.usage(trace.root) == otel.usage(led) + otel.usage(failed)
-    assert otel.attribute(trace.root, "exar.usage.input_tokens") == otel.usage(trace.root).input_tokens
+    assert (
+        trace.output == otel.usage(trace.root) == otel.usage(led) + otel.usage(failed)
+    )
+    assert (
+        otel.attribute(trace.root, "exar.usage.input_tokens")
+        == otel.usage(trace.root).input_tokens
+    )
 
 
 async def test_traced_events_nests_the_run_and_passes_errors(
@@ -254,7 +263,11 @@ async def test_traced_events_nests_the_run_and_passes_errors(
     ]
     assert otel.output_messages(chat)[0].parts == [GenAIText(content="Hi")]
     assert otel.usage(chat).input_tokens > 0
-    assert (broken.status, otel.error_type(broken), otel.usage(broken) == otel.usage(failed.root)) == (
+    assert (
+        broken.status,
+        otel.error_type(broken),
+        otel.usage(broken) == otel.usage(failed.root),
+    ) == (
         "error",
         "ValueError",
         True,

@@ -104,7 +104,9 @@ class ProcessLimits:
             >>> ProcessLimits(cpu=2, memory=None, files=1024).command(["jq", "."])
             ['/bin/sh', '-c', 'ulimit -t 2 || exit 125; ulimit -f 2 || exit 125; unset PWD OLDPWD SHLVL; exec "$@"', 'sh', 'jq', '.']
         """
-        memory = None if self.memory is None or sys.platform == "darwin" else self.memory
+        memory = (
+            None if self.memory is None or sys.platform == "darwin" else self.memory
+        )
         # `ulimit -v` counts KiB, while `ulimit -f` counts the blocks of 512 bytes POSIX
         # specifies, which the bash 3.2 of macOS reads as KiB, doubling the limit there.
         settings = [

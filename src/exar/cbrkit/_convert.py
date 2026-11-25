@@ -53,7 +53,9 @@ def from_changes[K, V, W](
     for item in changes.items:
         match item:
             case cbrkit.model.Add():
-                items.append(Add(key=item.key, value=value(item.value), reason=item.reason))
+                items.append(
+                    Add(key=item.key, value=value(item.value), reason=item.reason)
+                )
             case cbrkit.model.Update():
                 items.append(
                     Update(key=item.key, value=value(item.value), reason=item.reason)

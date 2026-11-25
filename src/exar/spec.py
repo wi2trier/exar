@@ -65,7 +65,17 @@ __all__ = [
 ]
 
 type ToolKind = Annotated[
-    Read | Ls | Grep | Jq | View | Table | WebFetch | WebSearch | Sql | OpenApi | CaseBase,
+    Read
+    | Ls
+    | Grep
+    | Jq
+    | View
+    | Table
+    | WebFetch
+    | WebSearch
+    | Sql
+    | OpenApi
+    | CaseBase,
     Field(discriminator="kind"),
 ]
 """The configurable tools, whose host-bound names `load` binds."""

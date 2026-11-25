@@ -112,7 +112,9 @@ def context[I, O, M](
         duration=(trace.root.end - trace.root.start).total_seconds(),
         _span_tree=span_tree(trace),
         attributes={},
-        metrics={} if (cost := usage(trace.root).cost) is None else {"cost": float(cost)},
+        metrics={}
+        if (cost := usage(trace.root).cost) is None
+        else {"cost": float(cost)},
     )
 
 

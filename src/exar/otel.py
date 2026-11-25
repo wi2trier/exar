@@ -578,5 +578,7 @@ def usage(span: Span, /) -> Usage:
 def agents(span: Span, /) -> tuple[str, ...]:
     """Names of the agents and workflows invoked at or below a span, in order of their first invocation."""
     return tuple(
-        dict.fromkeys(name for child in span.walk() if (name := invoked(child)) is not None)
+        dict.fromkeys(
+            name for child in span.walk() if (name := invoked(child)) is not None
+        )
     )
