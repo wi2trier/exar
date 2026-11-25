@@ -25,6 +25,7 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 Integrations and extras, so `import exar` never loads an optional dependency
 and a missing extra surfaces as an `AttributeError` that names it:
 
+- `exar.cbrkit`: Case-based reasoning by cbrkit, memories over its storages and its retrieval metrics, needs the `cbrkit` extra.
 """
 
 from importlib import import_module
@@ -37,6 +38,7 @@ from .errors import MissingExtra
 if TYPE_CHECKING:
     from . import (
         agents,
+        cbrkit,
         errors,
         helpers,
         memory,
@@ -50,6 +52,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "agents",
+    "cbrkit",
     "errors",
     "helpers",
     "memory",
@@ -62,6 +65,7 @@ __all__ = [
 ]
 
 _EXTRAS = {
+    "cbrkit": "cbrkit",
 }
 """The extra that every integration needs, by module name."""
 
