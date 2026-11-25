@@ -16,6 +16,8 @@ Core modules, depending only on pydantic and OpenTelemetry, with `typing` and `e
 - `errors`: Refused actions, conflicting writes, missing extras, and failed agents.
 - `helpers`: Immutable mappings, names, bounded concurrency, and durable writes.
 - `schema`: Serialized forms and JSON Schemas of configurable classes, described by their docstrings.
+- `tools`: Conventions for tools as plain async functions and the formatting of their output,
+  and with `exar.tools.files` (needs the `pydantic-ai` extra) configurable tools over the files below mounts.
 - `subprocess`: The subprocess runner with process limits and typed async wrappers of the command line tools `rg` and `jq`.
 - `policy`: Policies that allow, refuse, or ask for approval of actions.
 
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
         policy,
         schema,
         subprocess,
+        tools,
         typing,
     )
 
@@ -51,6 +54,7 @@ __all__ = [
     "policy",
     "schema",
     "subprocess",
+    "tools",
     "typing",
 ]
 
