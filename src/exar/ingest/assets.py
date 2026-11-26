@@ -27,8 +27,10 @@ __all__ = [
     "caption",
     "caption_assets",
     "contexts",
+    "drop_assets",
     "informative",
     "perceptual_key",
+    "relink",
 ]
 
 logger = logging.getLogger(__name__)
@@ -149,6 +151,36 @@ def perceptual_key(data: bytes, size: int = 8) -> int | None:
 
 
 _IMAGE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+"""A Markdown image reference, its alternative text and its path."""
+
+
+def relink(markdown: str, link: Callable[[str], str | None], /) -> str:
+    """Points every image reference at the path *link* returns for its own, dropping it where that is None.
+
+    Only the image syntax of Markdown is rewritten, so prose naming a file stays.
+
+    Examples:
+        >>> relink("a ![x](a.png) b ![](b.png)", lambda path: None if path == "b.png" else f"img/{path}")
+        'a ![x](img/a.png) b '
+    """
+
+    def rewrite(match: re.Match[str]) -> str:
+        target = link(match.group(2).strip())
+
+        return "" if target is None else f"![{match.group(1)}]({target})"
+
+    return _IMAGE.sub(rewrite, markdown)
+
+
+def drop_assets(parsed: Parsed, /) -> Parsed:
+    """A parsed document without its assets and without any image reference, extracted or not.
+
+    Examples:
+        >>> dropped = drop_assets(Parsed(markdown="a ![](a.png) b ![](https://x/b.png)", assets=frozendict(a=Asset(data=b""))))
+        >>> dropped.markdown, dict(dropped.assets)
+        ('a  b ', {})
+    """
+    return replace(parsed, markdown=relink(parsed.markdown, lambda _: None), assets=frozendict())
 
 
 def contexts(markdown: str, window: int = 400) -> dict[str, list[str]]:

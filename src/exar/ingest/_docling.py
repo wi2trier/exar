@@ -42,7 +42,10 @@ class Settings(Protocol):
     def skip_ocr_with_text(self) -> bool: ...
 
     @property
-    def classify_pictures(self) -> bool: ...
+    def extract_assets(self) -> bool: ...
+
+    @property
+    def classify_assets(self) -> bool: ...
 
     @property
     def threads(self) -> int: ...
@@ -107,8 +110,8 @@ def _converter(config: Settings, ocr: bool) -> DocumentConverter:
     batch_size = config.batch_size
     pdf = ThreadedPdfPipelineOptions(
         do_ocr=ocr,
-        do_picture_classification=config.classify_pictures,
-        generate_picture_images=True,
+        do_picture_classification=config.extract_assets and config.classify_assets,
+        generate_picture_images=config.extract_assets,
         ocr_options=TesseractOcrOptions(lang=list(config.ocr_languages)),
         accelerator_options=accelerator,
         ocr_batch_size=batch_size,
@@ -199,7 +202,8 @@ def parse(source: Path, config: Settings) -> Parsed:
         if not isinstance(item, PictureItem):
             continue
 
-        image = item.get_image(document)
+        # Without images, every placeholder is dropped.
+        image = item.get_image(document) if config.extract_assets else None
         assets.append(
             None
             if image is None

@@ -21,6 +21,9 @@ class Settings(Protocol):
     def detect_headings(self) -> bool: ...
 
     @property
+    def extract_assets(self) -> bool: ...
+
+    @property
     def ocr_models(self) -> tuple[Path, Path, Path] | None: ...
 
     @property
@@ -70,7 +73,7 @@ def parse(source: Path, config: Settings) -> Parsed:
         options: _Options = {
             "preserve_layout": config.preserve_layout,
             "detect_headings": config.detect_headings,
-            "include_images": True,
+            "include_images": config.extract_assets,
             "embed_images": False,
             "image_output_dir": str(images),
         }

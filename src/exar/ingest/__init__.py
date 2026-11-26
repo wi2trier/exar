@@ -31,8 +31,10 @@ if TYPE_CHECKING:
         caption,
         caption_assets,
         contexts,
+        drop_assets,
         informative,
         perceptual_key,
+        relink,
     )
     from .chunkers import (
         Chunker,
@@ -166,6 +168,7 @@ __all__ = [
     "configure",
     "contexts",
     "downscale",
+    "drop_assets",
     "extract_pages",
     "failed",
     "fingerprint",
@@ -179,6 +182,7 @@ __all__ = [
     "parse_pages",
     "perceptual_key",
     "png",
+    "relink",
     "render_pages",
     "sample_animation",
     "sample_video",

@@ -1,14 +1,20 @@
 import shutil
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 
 import PIL.Image
 import pytest
 
 from exar.ingest import (
+    Docling,
+    Kreuzberg,
     Pandoc,
     Parsed,
+    Parser,
+    PdfOxide,
     Pdftotext,
     PlainText,
     Route,
@@ -128,22 +134,7 @@ def test_markitdown(tmp_path: Path) -> None:
 
 def test_kreuzberg_links_images(tmp_path: Path) -> None:
     pytest.importorskip("kreuzberg")
-    docx = pytest.importorskip("docx")
-    from io import BytesIO
-
-    from PIL import Image
-
-    from exar.ingest import Kreuzberg
-
-    document = docx.Document()
-
-    for color, format in (("red", "PNG"), ("blue", "JPEG")):
-        image = BytesIO()
-        Image.new("RGB", (40, 30), color).save(image, format)
-        document.add_picture(image)
-
-    source = tmp_path / "images.docx"
-    document.save(str(source))
+    source = _docx_with_images(tmp_path / "images.docx", ("PNG", "JPEG"))
     parsed = Kreuzberg()(source)
 
     assert parsed.markdown.split() == [
@@ -238,3 +229,60 @@ def test_pdftotext(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     for _ in range(2):
         with pytest.raises(ValueError, match="no readable text"):
             Pdftotext()(source)
+
+
+def _docx_with_images(path: Path, formats: tuple[str, ...] = ("PNG", "PNG")) -> Path:
+    """Writes a DOCX of one picture per format, each a solid color, at *path* with its suffix."""
+    docx = pytest.importorskip("docx")
+    path = path.with_suffix(".docx")
+    document = docx.Document()
+
+    for color, format in zip(("red", "blue", "green"), formats, strict=False):
+        image = BytesIO()
+        PIL.Image.new("RGB", (40, 30), color).save(image, format)
+        document.add_picture(image)
+
+    document.save(str(path))
+
+    return path
+
+
+def _scan_pdf(path: Path) -> Path:
+    """Writes a PDF of a single picture at *path* with its suffix."""
+    path = path.with_suffix(".pdf")
+    PIL.Image.new("RGB", (200, 150), "green").save(path, "PDF")
+
+    return path
+
+
+@pytest.mark.parametrize(
+    ("parser", "backend", "write"),
+    [
+        pytest.param(
+            Pandoc,
+            None,
+            _docx_with_images,
+            marks=pytest.mark.skipif(shutil.which("pandoc") is None, reason="needs pandoc"),
+        ),
+        (Kreuzberg, "kreuzberg", _docx_with_images),
+        (Docling, "docling", _docx_with_images),
+        (PdfOxide, "pdf_oxide", _scan_pdf),
+    ],
+)
+def test_images_are_dropped_with_their_references_unless_extracted(
+    tmp_path: Path,
+    parser: Callable[..., Parser],
+    backend: str | None,
+    write: Callable[[Path], Path],
+) -> None:
+    if backend is not None:
+        pytest.importorskip(backend)
+
+    source = write(tmp_path / "source")
+    extracted = parser()(source)
+    dropped = parser(extract_assets=False)(source)
+
+    assert extracted.assets
+    assert all(path in extracted.markdown for path in extracted.assets)
+    assert not dropped.assets
+    assert "![" not in dropped.markdown

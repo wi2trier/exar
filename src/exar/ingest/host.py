@@ -89,7 +89,8 @@ class Host:
     max_image_pixels: int | None = None
     ocr_languages: tuple[str, ...] = ("eng",)
     skip_ocr_with_text: bool = True
-    classify_pictures: bool = False
+    extract_assets: bool = True
+    classify_assets: bool = False
     device: Device = "cpu"
 
 

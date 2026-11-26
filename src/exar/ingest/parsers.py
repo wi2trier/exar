@@ -22,6 +22,7 @@ import PIL.Image
 from ..helpers import frozendict
 from ..subprocess import ProcessLimits, SubprocessError, run, sanitized_env
 from ..text import decode, fenced
+from .assets import drop_assets
 from .host import Device
 from .media import png
 from .model import Asset, Parsed, collect_assets
@@ -216,6 +217,9 @@ class WithFallback(Parser):
 _ZIP_CONTAINERS = frozenset({".docx", ".epub", ".odt", ".pptx", ".xlsx"})
 
 
+_DROP_IMAGES = "function Image(el) return {} end\n"
+"""A pandoc Lua filter that removes every image from the document."""
+
 _MAX_OUTPUT = 256 * 1024**2
 """Bytes of Markdown a converter may write, past which it is killed rather than filling memory."""
 
@@ -270,6 +274,7 @@ class Pandoc(Parser):
 
     Args:
         formats: Input formats of suffixes that pandoc does not infer, such as `{".txt": "markdown"}`.
+        extract_assets: Whether to extract the assets, such as images, else they are dropped with their references.
         timeout: Seconds pandoc may run.
         memory: Bytes of heap pandoc may use, unlimited if None,
             enforced by its runtime since a limit of its address space breaks it.
@@ -281,6 +286,7 @@ class Pandoc(Parser):
     """
 
     formats: Mapping[str, str] = field(default_factory=frozendict)
+    extract_assets: bool = True
     timeout: float | None = 300
     memory: int | None = _MEMORY
     max_assets: int | None = _MAX_OUTPUT
@@ -294,9 +300,15 @@ class Pandoc(Parser):
             args += ["--from", format]
 
         with tempfile.TemporaryDirectory() as tmp:
-            media = Path(tmp).resolve()
+            media = Path(tmp).resolve() / "media"
+            media.mkdir()
 
-            if suffix in _ZIP_CONTAINERS:
+            if not self.extract_assets:
+                # The sandbox confines readers and writers, not filters, so pandoc reads it.
+                drop = media.parent / "drop-images.lua"
+                drop.write_text(_DROP_IMAGES)
+                args += ["--lua-filter", str(drop)]
+            elif suffix in _ZIP_CONTAINERS:
                 # Relative to the working directory, so pandoc references the images by their asset paths.
                 args.append("--extract-media=")
 
@@ -418,6 +430,7 @@ class PdfOxide(Parser):
     Args:
         preserve_layout: Whether to keep the visual columns instead of the reading order.
         detect_headings: Whether to turn detected headings into Markdown headings.
+        extract_assets: Whether to extract the assets, such as images, else they are dropped with their references.
         ocr_models: Paths of the PaddleOCR detection model, recognition model, and dictionary,
             no OCR if None.
         threads: Threads of the OCR engine.
@@ -425,6 +438,7 @@ class PdfOxide(Parser):
 
     preserve_layout: bool = False
     detect_headings: bool = True
+    extract_assets: bool = True
     ocr_models: tuple[Path, Path, Path] | None = None
     threads: int = 1
 
@@ -442,11 +456,13 @@ class Kreuzberg(Parser):
         force_ocr: Whether to run OCR even on files with a text layer.
         ocr_languages: Tesseract language codes, resolved through `TESSDATA_PREFIX`.
         quality_processing: Whether to clean up the extracted text.
+        extract_assets: Whether to extract the assets, such as images, else they are dropped with their references.
     """
 
     force_ocr: bool = False
     ocr_languages: tuple[str, ...] = ("eng",)
     quality_processing: bool = True
+    extract_assets: bool = True
 
     def __call__(self, source: Path, /) -> Parsed:
         from kreuzberg import (
@@ -472,12 +488,20 @@ class Kreuzberg(Parser):
         )
         result = extract_file_sync(source, config=config)
         markdown = str(result.content)
+
+        # Kreuzberg's own switch keeps the images of some formats, such as DOCX, referenced,
+        # so they are dropped here instead, sparing their conversion to PNG.
+        if not self.extract_assets:
+            return drop_assets(Parsed(markdown=markdown))
+
         assets: dict[str, Asset] = {}
 
         for image in result.images or []:
             data: bytes = image["data"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
             index = image.get("image_index", len(assets))
             format = image.get("format", "png")
+            # Kreuzberg references each image by its index and original format.
+            reference = f"![](image_{index}.{format})"
             name = f"image_{index:06}.png"
 
             if format.lower() != "png":
@@ -485,8 +509,7 @@ class Kreuzberg(Parser):
 
             page = image.get("page_number")
             assets[name] = Asset(data=data, page=None if page is None else int(page))
-            # Kreuzberg references each image by its index and original format.
-            markdown = markdown.replace(f"![](image_{index}.{format})", f"![]({name})")
+            markdown = markdown.replace(reference, f"![]({name})")
 
         return Parsed(markdown=markdown, assets=frozendict(assets))
 
@@ -501,7 +524,8 @@ class Docling(Parser):
         ocr: Whether to run Tesseract OCR on PDFs and images.
         ocr_languages: Tesseract language codes, resolved through `TESSDATA_PREFIX`.
         skip_ocr_with_text: Whether a PDF with a text layer skips OCR.
-        classify_pictures: Whether to classify pictures for their `AssetRole`.
+        extract_assets: Whether to extract the assets, such as images, else they are dropped with their references.
+        classify_assets: Whether to classify the assets for their `AssetRole`.
         threads: Threads of the models.
         batch_size: Pages fed to the layout, table, and OCR models at once.
         device: Device of the models.
@@ -512,7 +536,8 @@ class Docling(Parser):
     ocr: bool = True
     ocr_languages: tuple[str, ...] = ("eng",)
     skip_ocr_with_text: bool = True
-    classify_pictures: bool = False
+    extract_assets: bool = True
+    classify_assets: bool = False
     threads: int = 1
     batch_size: int = 8
     device: Device = "cpu"
