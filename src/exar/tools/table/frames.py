@@ -213,7 +213,9 @@ def _lead(name: str, coercion: _Coercion) -> pl.Expr:
     filled = _filled(text)
     parses = filled & coercion.matches(text)
     unparsed = filled & ~parses
-    first = parses.arg_max()
+    # Not `arg_max`, whose pick among ties is unspecified and is the last one
+    # on the streaming engine once it splits the column across threads.
+    first = pl.int_range(pl.len()).filter(parses).min()
 
     # The first parsing row is not unparsed itself, so the running count there
     # is every unparsed value above it.

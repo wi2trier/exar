@@ -44,7 +44,9 @@ TableQueriesArg = Annotated[
         'GROUP BY region ORDER BY total DESC". Each runs on its own over the '
         "tables loaded once, so ask every question of them in one call. "
         "Supports the usual aggregates, WHERE, HAVING, ORDER BY, CTEs, window "
-        "functions, joins, and `SHOW TABLES`. DuckDB follows PostgreSQL, so "
+        "functions, joins, and `SHOW TABLES`. Rows have no set order without "
+        "ORDER BY, and a long result is cut after its first rows, so add one "
+        "whenever order or those first rows matter. DuckDB follows PostgreSQL, so "
         "write PostgreSQL spellings, and a refused function is named in the "
         "error with the names it may have meant. Omit the queries "
         "to get each table's columns, their types, the row count, and a few "
