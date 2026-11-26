@@ -62,7 +62,7 @@ LsPatternsArg = Annotated[
 LsMaxDepthArg = Annotated[
     int | None,
     Field(
-        description="Maximum nesting depth relative to the selected directory.",
+        description="Maximum nesting depth relative to the selected directory, null for every depth.",
         ge=1,
     ),
 ]
