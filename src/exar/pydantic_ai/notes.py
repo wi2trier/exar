@@ -6,8 +6,9 @@ so a note appends its change to the history instead.
 Text for the model is rendered by a `Render` from the run, which a host overrides to localize it, here and in the guards.
 `ToolNote` reports state as tool calls the model did not make, with their results,
 enqueued where the compaction window does not show them yet.
-Instructions carry the authority of the operator, so state written by others,
-such as a memory the model wrote or content of users, belongs in a tool result.
+Instructions carry the authority of the operator unless a note is lowered with `with_authority`,
+so state written by others is either lowered to its author's authority, such as instructions a user chose,
+or reported in a tool result, such as a memory the model wrote.
 """
 
 import asyncio
