@@ -10,10 +10,12 @@ Records:
 - `Action`, `Effect`, `Decision`: What an agent is about to do, what it changes, and whether it may.
 - `Verdict`, `Evaluation`: The assessment of a run and the results of its evaluators.
 - `Hit`, `Changes`, `Add`, `Update`, `Remove`: What a search of a memory finds and the writes to it with their reasons.
+- `Question`: A question about a text, which a `Decide` answers with a typed decision and a `Judge` with the probability of yes.
 
 Protocols:
 
 - `Agent`: Language model agents, deterministic functions, workflows, and BPMN processes alike.
+- `Decide`, `Judge`: The agents that answer a `Question` with a typed decision or the probability of yes, such as decision models.
 - `Policy`: Allows, refuses, or asks for approval of tool calls and agent invocations.
 - `Assessed`: A run with its verdict, such as `exar.eval.Assessment` from pydantic-evals evaluators.
 - `Memory`: Searches, reads, and writes knowledge, short-term and long-term alike.
@@ -59,6 +61,7 @@ __all__ = [
     "Assessed",
     "Changes",
     "Channel",
+    "Decide",
     "Decision",
     "Effect",
     "Evaluation",
@@ -66,10 +69,12 @@ __all__ = [
     "Hints",
     "Hit",
     "JsonEntry",
+    "Judge",
     "ListableMemory",
     "Measure",
     "Memory",
     "Policy",
+    "Question",
     "Redact",
     "Remove",
     "Solution",
@@ -293,6 +298,30 @@ class Agent[I, O](Protocol):
     """
 
     async def __call__(self, task: I, /) -> O: ...
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Question:
+    """A question about a text.
+
+    Args:
+        instructions: The question, such as "Does the second passage refer back to the first one?".
+        text: What the question is about.
+    """
+
+    instructions: str
+    text: str
+
+
+type Decide[T] = Agent[Question, T]
+"""Answers a question with a decision of type `T`, such as a label to pick, a score on a rubric, or labels that apply.
+
+A decision model fills such decisions fast and calibrated and a language model as structured output,
+such as through `exar.pydantic_ai.decide`, and any agent framework or function of the same signature is one too.
+"""
+
+type Judge = Decide[float]
+"""Answers a yes/no question with the probability of yes, from 0 to 1, such as through `exar.pydantic_ai.judge`."""
 
 
 class Policy(Protocol):

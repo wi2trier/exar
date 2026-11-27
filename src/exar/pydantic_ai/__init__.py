@@ -5,6 +5,9 @@
 - `instrumentation`: The instrumentation of pydantic-ai into the traces of exar, applied globally
   with `Agent.instrument_all(instrumentation())`.
 - `CountUsage`: Counts the usage of every model request toward the exar run, apart from the spans (`usage_of`).
+- `decide`, `judge`: A `exar.typing.Decide` of any output type and a `exar.typing.Judge` of the probability of yes on any model,
+  a decision model fast and calibrated, a language model through structured output.
+- `Generation`: Structured responses to many prompts on any model, such as for the language models of cbrkit.
 - `toolset`: exar tools as a pydantic-ai toolset, with their effects as metadata (`EFFECT`, `tool_effect`).
 - `EffectGate`: Derives native approvals from the `exar.policy` policy of each run by the actions of the tools (`definition_action`),
   whose effects `DeclaredEffects` declares for tools built elsewhere.
@@ -40,7 +43,9 @@ from .agent import (
     traced_events,
     usage_of,
 )
+from .decision import decide, judge
 from .experience import RetrieveExperience, prompt_text
+from .generation import Generation
 from .notes import Read, Reads, Render, RunNote, ToolNote, latest_read
 from .tools import (
     EFFECT,
@@ -58,6 +63,7 @@ __all__ = [
     "DeclaredEffects",
     "EffectGate",
     "Events",
+    "Generation",
     "PydanticAiAgent",
     "Read",
     "Reads",
@@ -68,8 +74,10 @@ __all__ = [
     "Snapshot",
     "ToolNote",
     "changes",
+    "decide",
     "definition_action",
     "instrumentation",
+    "judge",
     "latest_read",
     "prompt_text",
     "snapshot",

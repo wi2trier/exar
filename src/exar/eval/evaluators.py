@@ -1,8 +1,9 @@
-"""Native pydantic-evals evaluators for agentic applications: key facts and answerability.
+"""Native pydantic-evals evaluators for agentic applications: key facts, answerability, and judged questions.
 
 They run in pydantic-evals datasets like its own evaluators, and on exar traces through `exar.eval.evaluate`.
 The judges ask a pydantic-ai model, a `Model` or a model name such as `"openai:gpt-6.1-sol"`.
-`KeyFacts` reports a score under its name and whether it passed under `<name>_passed`, see `scored`,
+`Judged` asks an `exar.typing.Judge` a yes/no question about the output, such as a decision model, and scores its probability.
+`KeyFacts` and `Judged` report a score under their name and whether it passed under `<name>_passed`, see `scored`,
 and `exar.cbrkit.RetrievalMetric` adds the ranking metrics of cbrkit.
 
 Examples:
@@ -17,19 +18,22 @@ Examples:
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_evals.evaluators import EvaluationReason, Evaluator, EvaluatorContext
 
+from ..agents import call
 from ..text import as_text, tagged
+from ..typing import Judge, Question
 
 __all__ = [
     "Answerability",
     "AnswerabilityJudge",
     "JudgeModel",
+    "Judged",
     "KeyFact",
     "KeyFacts",
     "scored",
@@ -85,7 +89,7 @@ class _Classified(BaseModel):
 
 
 @dataclass(repr=False, kw_only=True)
-class KeyFacts(Evaluator[object, object, object]):
+class KeyFacts(Evaluator[Any, Any, Any]):
     """Scores the share of key facts the output states, passing if it states every must fact.
 
     Without a model, the output states a fact that it contains ignoring case,
@@ -105,7 +109,7 @@ class KeyFacts(Evaluator[object, object, object]):
         return self.evaluation_name or self.get_serialization_name()
 
     async def evaluate(
-        self, ctx: EvaluatorContext[object, object, object]
+        self, ctx: EvaluatorContext[Any, Any, Any]
     ) -> dict[str, EvaluationReason]:
         name = self.get_default_evaluation_name()
 
@@ -144,7 +148,7 @@ class KeyFacts(Evaluator[object, object, object]):
 
 
 @dataclass(repr=False, kw_only=True)
-class AnswerabilityJudge(Evaluator[object, object, object]):
+class AnswerabilityJudge(Evaluator[Any, Any, Any]):
     """Asks a model whether the output treats the question in the inputs as answerable as expected.
 
     Args:
@@ -160,9 +164,7 @@ class AnswerabilityJudge(Evaluator[object, object, object]):
     def get_default_evaluation_name(self) -> str:
         return self.evaluation_name or self.get_serialization_name()
 
-    async def evaluate(
-        self, ctx: EvaluatorContext[object, object, object]
-    ) -> EvaluationReason:
+    async def evaluate(self, ctx: EvaluatorContext[Any, Any, Any]) -> EvaluationReason:
         prompt = "\n\n".join(
             (
                 ANSWERABILITY,
@@ -175,4 +177,53 @@ class AnswerabilityJudge(Evaluator[object, object, object]):
         return EvaluationReason(
             value=actual == self.expected,
             reason=f"Treated as {actual}, expected {self.expected}",
+        )
+
+
+@dataclass(repr=False, kw_only=True)
+class Judged(Evaluator[Any, Any, Any]):
+    """Scores the probability of yes that a judge gives to a question about the inputs and the output.
+
+    A decision model answers with a calibrated probability, so the score is graded rather than pass or fail.
+    The judge sees the inputs and the output framed by tags, and the question names them as such.
+
+    Args:
+        question: The yes/no question, such as "Is the answer grounded in the question?".
+        judge: Answers the question, such as `exar.pydantic_ai.judge` of a model.
+        threshold: Probability from which the output passes.
+        evaluation_name: Name of the score in reports, the class name by default.
+
+    Examples:
+        >>> import asyncio
+        >>> from pydantic_evals import Case, Dataset
+        >>> async def polite(question: Question) -> float:
+        ...     return 0.9 if "please" in question.text else 0.1
+        >>> judged = Judged(question="Is the answer polite?", judge=polite)
+        >>> dataset = Dataset[str, str, None](name="manners", cases=[Case(inputs="Pass the salt")], evaluators=[judged])
+        >>> report = asyncio.run(dataset.evaluate(lambda task: asyncio.sleep(0, "Here, please."), progress=False))
+        >>> report.cases[0].scores["Judged"].value, report.cases[0].assertions["Judged_passed"].value
+        (0.9, True)
+    """
+
+    question: str
+    judge: Judge
+    threshold: float = 0.5
+    evaluation_name: str | None = field(default=None)
+
+    def get_default_evaluation_name(self) -> str:
+        return self.evaluation_name or self.get_serialization_name()
+
+    async def evaluate(
+        self, ctx: EvaluatorContext[Any, Any, Any]
+    ) -> dict[str, EvaluationReason]:
+        text = f"{tagged('inputs', ctx.inputs)}\n{tagged('output', ctx.output)}"
+        probability = await call(
+            self.judge, Question(instructions=self.question, text=text), name="judge"
+        )
+
+        return scored(
+            self.get_default_evaluation_name(),
+            probability,
+            probability >= self.threshold,
+            f"Probability {probability:.2f} of yes to: {self.question}",
         )

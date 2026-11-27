@@ -11,11 +11,11 @@ import io
 import logging
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, replace
-from typing import Protocol
 
 import PIL.Image
 
 from ..helpers import bounded_gather, frozendict
+from ..typing import Agent
 from ._markdown import Image, images
 from .media import sanitize_image
 from .model import Asset, AssetRole, Parsed, Sample, vision_media_type
@@ -78,10 +78,8 @@ class Media:
     media_type: str
 
 
-class Describe(Protocol):
-    """Answers a prompt of text and media with a vision model."""
-
-    async def __call__(self, prompt: Sequence[str | Media], /) -> str: ...
+type Describe = Agent[Sequence[str | Media], str]
+"""Answers a prompt of text and media with a vision model, any agent of that signature."""
 
 
 def _decorative_shape(data: bytes) -> bool:
@@ -172,7 +170,11 @@ def relink(markdown: str, link: Callable[[str], str | None], /) -> str:
 
 
 def _splice(
-    markdown: str, images: Iterable[Image], rewrite: Callable[[Image], str], start: int, end: int
+    markdown: str,
+    images: Iterable[Image],
+    rewrite: Callable[[Image], str],
+    start: int,
+    end: int,
 ) -> str:
     """The text of *markdown* from *start* to *end* with every one of *images* that lies wholly in it rewritten."""
     parts: list[str] = []
@@ -197,7 +199,9 @@ def drop_assets(parsed: Parsed, /) -> Parsed:
         >>> dropped.markdown, dict(dropped.assets)
         ('a  b ', {})
     """
-    return replace(parsed, markdown=relink(parsed.markdown, lambda _: None), assets=frozendict())
+    return replace(
+        parsed, markdown=relink(parsed.markdown, lambda _: None), assets=frozendict()
+    )
 
 
 def contexts(markdown: str, window: int = 400) -> dict[str, list[str]]:
@@ -217,7 +221,9 @@ def contexts(markdown: str, window: int = 400) -> dict[str, list[str]]:
 
     def prose(start: int, end: int) -> str:
         # The images of the document are reused, so no window is parsed again.
-        near = found[bisect.bisect_left(starts, start) : bisect.bisect_left(starts, end)]
+        near = found[
+            bisect.bisect_left(starts, start) : bisect.bisect_left(starts, end)
+        ]
 
         return _splice(markdown, near, lambda _: " ", start, end)
 
