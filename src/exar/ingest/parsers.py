@@ -20,7 +20,7 @@ from email.message import EmailMessage
 from email.parser import BytesParser
 from io import BytesIO
 from pathlib import Path
-from typing import Protocol, TypeIs
+from typing import Annotated, Protocol, TypeIs
 
 import PIL.Image
 
@@ -30,7 +30,7 @@ from ..subprocess import ProcessLimits, SubprocessError, run, sanitized_env
 from ..text import decode, fenced, markdown_cell, markdown_table
 from ..typing import JsonEntry
 from .assets import drop_assets
-from .host import Device
+from .host import RUNTIME, Device
 from .media import png
 from .model import Asset, Parsed, collect_assets
 from .repair import dehyphenate, inline_footnotes
@@ -504,9 +504,9 @@ class Pandoc(Parser):
 
     formats: Mapping[str, str] = field(default_factory=frozendict)
     extract_assets: bool = True
-    timeout: float | None = 300
-    memory: int | None = _MEMORY
-    max_assets: int | None = _MAX_OUTPUT
+    timeout: Annotated[float | None, RUNTIME] = 300
+    memory: Annotated[int | None, RUNTIME] = _MEMORY
+    max_assets: Annotated[int | None, RUNTIME] = _MAX_OUTPUT
 
     def __call__(self, source: Path, /) -> Parsed:
         suffix = source.suffix.lower()
@@ -559,8 +559,8 @@ class Pdftotext(Parser):
     """
 
     layout: bool = False
-    timeout: float | None = 300
-    memory: int | None = _MEMORY
+    timeout: Annotated[float | None, RUNTIME] = 300
+    memory: Annotated[int | None, RUNTIME] = _MEMORY
 
     def __call__(self, source: Path, /) -> Parsed:
         args = [
@@ -657,7 +657,7 @@ class PdfOxide(Parser):
     detect_headings: bool = True
     extract_assets: bool = True
     ocr_models: tuple[Path, Path, Path] | None = None
-    threads: int = 1
+    threads: Annotated[int, RUNTIME] = 1
 
     def __call__(self, source: Path, /) -> Parsed:
         from ._pdf_oxide import parse
@@ -754,11 +754,11 @@ class Docling(Parser):
     ocr_languages: tuple[str, ...] = ("eng",)
     skip_ocr_with_text: bool = True
     extract_assets: bool = True
-    classify_assets: bool = False
-    threads: int = 1
-    batch_size: int = 8
-    device: Device = "cpu"
-    max_image_pixels: int | None = None
+    classify_assets: Annotated[bool, RUNTIME] = False
+    threads: Annotated[int, RUNTIME] = 1
+    batch_size: Annotated[int, RUNTIME] = 8
+    device: Annotated[Device, RUNTIME] = "cpu"
+    max_image_pixels: Annotated[int | None, RUNTIME] = None
 
     def __call__(self, source: Path, /) -> Parsed:
         from ._docling import parse

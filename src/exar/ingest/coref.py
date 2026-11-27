@@ -8,13 +8,14 @@ Every question is an invocation of the judge (`exar.agents.call`), traced like a
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Annotated
 
 from ..agents import call
 from ..helpers import bounded_gather
 from ..text import tagged
 from ..typing import Judge, Question
 from .chunkers import annotate
-from .host import AsyncChunker
+from .host import RUNTIME, AsyncChunker
 from .model import Chunk
 
 __all__ = ["COREF_INSTRUCTIONS", "CorefMerge"]
@@ -60,7 +61,7 @@ class CorefMerge:
     judge: Judge
     size: int
     threshold: float = 0.5
-    concurrency: int = 8
+    concurrency: Annotated[int, RUNTIME] = 8
     instructions: str = COREF_INSTRUCTIONS
 
     async def _dependent(self, pair: tuple[Chunk, Chunk]) -> bool:

@@ -3,7 +3,8 @@
 A host, such as a server, builds every component with `configure`
 from the facts of its `Host` the component has a field for, then the options of its operator,
 which the pydantic annotations of the component validate,
-and `fingerprint` names what a component was configured as, such as the chunker that made an index.
+and `fingerprint` names what a component was configured as, such as the chunker that made an index,
+leaving out the options marked `RUNTIME`.
 `Offloaded` runs a synchronous component in an executor, such as an `exar.ingest.ProcessPool`,
 so it serves as an `AsyncParser` or `AsyncChunker`, and `offloaded` does both steps at once.
 """
@@ -15,19 +16,21 @@ from concurrent.futures import Executor
 from dataclasses import dataclass, fields
 from functools import cache
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import ClassVar, Literal, Protocol, runtime_checkable
 
-from pydantic import TypeAdapter
+from pydantic import Field, TypeAdapter
 
 from ..memory import digest
 from .model import Chunk, Parsed
 
 __all__ = [
+    "RUNTIME",
     "AsyncChunker",
     "AsyncParser",
     "Device",
     "Host",
     "Offloaded",
+    "Revised",
     "SyncComponent",
     "configure",
     "fingerprint",
@@ -36,6 +39,16 @@ __all__ = [
 
 type Device = Literal["cpu", "cuda", "mps"]
 """Where the models of a component run."""
+
+RUNTIME = Field(exclude=True)
+"""Marks an option that tunes how a component runs, not what it outputs, such as `threads: Annotated[int, RUNTIME] = 1`, which `fingerprint` leaves out."""
+
+
+@runtime_checkable
+class Revised(Protocol):
+    """A component that raises its revision whenever it outputs otherwise for the same options, see `fingerprint`."""
+
+    revision: ClassVar[int]
 
 
 class SyncComponent[A, R](Protocol):
@@ -159,22 +172,29 @@ def _adapter[C](cls: type[C], /) -> TypeAdapter[C]:
 
 
 def fingerprint(component: object, /) -> str:
-    """The digest of a configured component by its class and options, such as the chunker an index was made with.
+    """The digest of a configured component, such as a chunker, by its class, its `Revised` revision, and its options without the `RUNTIME` ones.
 
-    It covers the options alone, so a host that changed the code of a component reindexes explicitly.
+    The versions of the libraries it runs on never count.
     An `Offloaded` component is the component it runs.
 
     Examples:
-        >>> from exar.ingest import TokenChunker
+        >>> from exar.ingest import Docling, TokenChunker
         >>> fingerprint(TokenChunker(size=512)) == fingerprint(offloaded(TokenChunker)({"size": "512"}, Host()))
         True
         >>> fingerprint(TokenChunker(size=512)) == fingerprint(TokenChunker(size=256))
         False
+        >>> fingerprint(Docling(threads=4)) == fingerprint(Docling())
+        True
     """
     if isinstance(component, Offloaded):
         return fingerprint(component.func)
 
     cls = type(component)
     options = _adapter(cls).dump_json(component).decode()
+    name = f"{cls.__module__}.{cls.__qualname__}"
 
-    return digest(f"{cls.__module__}.{cls.__qualname__} {options}")
+    # Revision 0 adds nothing, so the fingerprints of the components that never raised it stay.
+    if isinstance(component, Revised) and component.revision:
+        name += f"@{component.revision}"
+
+    return digest(f"{name} {options}")
