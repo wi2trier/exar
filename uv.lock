@@ -1018,6 +1018,12 @@ docling = [
     { name = "tree-sitter" },
     { name = "tree-sitter-markdown" },
 ]
+email = [
+    { name = "markdownify" },
+    { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
+]
 eval = [
     { name = "pydantic-evals" },
 ]
@@ -1117,12 +1123,13 @@ requires-dist = [
     { name = "claude-agent-sdk", marker = "extra == 'claude-agent-sdk'", specifier = ">=0.2,<1" },
     { name = "docling", marker = "extra == 'docling'", specifier = ">=2,<3" },
     { name = "duckdb", marker = "extra == 'table'", specifier = ">=2,<3" },
-    { name = "exar", extras = ["a2a", "anydoc", "bpmn", "cbrkit", "claude-agent-sdk", "docling", "eval", "http", "kreuzberg", "markitdown", "mcp", "media", "pdf-oxide", "pydantic-ai", "semantic", "sql", "table", "web"], marker = "extra == 'all'" },
+    { name = "exar", extras = ["a2a", "anydoc", "bpmn", "cbrkit", "claude-agent-sdk", "docling", "email", "eval", "http", "kreuzberg", "markitdown", "mcp", "media", "pdf-oxide", "pydantic-ai", "semantic", "sql", "table", "web"], marker = "extra == 'all'" },
     { name = "exar", extras = ["cbrkit"], marker = "extra == 'bpmn'" },
     { name = "exar", extras = ["chonkie"], marker = "extra == 'semantic'" },
     { name = "exar", extras = ["ingest"], marker = "extra == 'anydoc'" },
     { name = "exar", extras = ["ingest"], marker = "extra == 'chonkie'" },
     { name = "exar", extras = ["ingest"], marker = "extra == 'docling'" },
+    { name = "exar", extras = ["ingest"], marker = "extra == 'email'" },
     { name = "exar", extras = ["ingest"], marker = "extra == 'kreuzberg'" },
     { name = "exar", extras = ["ingest"], marker = "extra == 'markitdown'" },
     { name = "exar", extras = ["ingest"], marker = "extra == 'media'" },
@@ -1141,6 +1148,7 @@ requires-dist = [
     { name = "httpx2", marker = "extra == 'http'", specifier = ">=2,<3" },
     { name = "httpx2", marker = "extra == 'web'", specifier = ">=2,<3" },
     { name = "kreuzberg", marker = "extra == 'kreuzberg'", specifier = ">=4,<5" },
+    { name = "markdownify", marker = "extra == 'email'", specifier = ">=1,<2" },
     { name = "markdownify", marker = "extra == 'web'", specifier = ">=1,<2" },
     { name = "markitdown", extras = ["docx", "outlook", "pdf", "pptx", "xls", "xlsx"], marker = "extra == 'markitdown'", specifier = ">=0.1,<1" },
     { name = "opencv-python-headless", marker = "extra == 'media'", specifier = ">=5,<6" },
@@ -1165,7 +1173,7 @@ requires-dist = [
     { name = "tree-sitter", marker = "extra == 'ingest'", specifier = ">=0.26,<1" },
     { name = "tree-sitter-markdown", marker = "extra == 'ingest'", specifier = ">=0.5,<1" },
 ]
-provides-extras = ["a2a", "all", "anydoc", "bpmn", "cbrkit", "chonkie", "claude-agent-sdk", "docling", "eval", "http", "ingest", "kreuzberg", "markitdown", "mcp", "media", "pdf-inspector", "pdf-oxide", "pydantic-ai", "semantic", "sql", "table", "web"]
+provides-extras = ["a2a", "all", "anydoc", "bpmn", "cbrkit", "chonkie", "claude-agent-sdk", "docling", "email", "eval", "http", "ingest", "kreuzberg", "markitdown", "mcp", "media", "pdf-inspector", "pdf-oxide", "pydantic-ai", "semantic", "sql", "table", "web"]
 
 [package.metadata.requires-dev]
 docs = [{ name = "pdoc", specifier = ">=16,<17" }]

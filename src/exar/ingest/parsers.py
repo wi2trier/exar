@@ -4,32 +4,42 @@ A parser is a callable from the path of a source file to a `Parsed` result.
 Parsers are synchronous and picklable, so the caller decides where they run,
 in a thread or a crash-resilient process pool (see `exar.ingest.executors`).
 Backends import their library on the first call, each behind an extra of its own.
-`Route` picks a parser by the suffix of the file, `WithFallback` recovers from a failed or degraded parse.
+`Route` picks a parser by the suffix of the file, `WithFallback` recovers from a failed or degraded parse,
+and `Repaired` repairs the prose of what a parser produced, see `exar.ingest.repair`.
 """
 
 import asyncio
+import json
 import logging
 import re
 import tempfile
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from collections.abc import Callable, Iterator, Mapping
+from dataclasses import dataclass, field, replace
+from email import policy
+from email.message import EmailMessage
+from email.parser import BytesParser
 from io import BytesIO
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, TypeIs
 
 import PIL.Image
 
+from .._lazy import extra_hint
 from ..helpers import frozendict
 from ..subprocess import ProcessLimits, SubprocessError, run, sanitized_env
-from ..text import decode, fenced
+from ..text import decode, fenced, markdown_cell, markdown_table
+from ..typing import JsonEntry
 from .assets import drop_assets
 from .host import Device
 from .media import png
 from .model import Asset, Parsed, collect_assets
+from .repair import dehyphenate, inline_footnotes
 
 __all__ = [
     "Anydoc",
     "Docling",
+    "Email",
+    "Json",
     "Kreuzberg",
     "MarkItDown",
     "Pandoc",
@@ -38,6 +48,7 @@ __all__ = [
     "PdfOxide",
     "Pdftotext",
     "PlainText",
+    "Repaired",
     "Route",
     "WithFallback",
     "failed",
@@ -93,6 +104,172 @@ class PlainText(Parser):
         )
 
         return Parsed(markdown=text, encoding=decoded.encoding)
+
+
+_JSON_LINES = frozenset({".jsonl", ".ndjson"})
+
+
+def _flat(value: JsonEntry, path: str = "") -> Iterator[tuple[str, JsonEntry]]:
+    """The leaves of nested objects by their dotted key path, anything else a leaf of its own."""
+    if isinstance(value, Mapping) and value:
+        for key, item in value.items():
+            yield from _flat(item, f"{path}.{key}" if path else str(key))
+    else:
+        yield path, value
+
+
+def _records(value: JsonEntry) -> TypeIs[list[Mapping[str, JsonEntry]]]:
+    """Whether *value* is a non-empty array of objects."""
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(isinstance(item, Mapping) for item in value)
+    )
+
+
+def _json_cell(value: JsonEntry) -> str:
+    return markdown_cell(
+        value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+    )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Json(Parser):
+    r"""Renders JSON, or JSON Lines by the suffix `.jsonl` or `.ndjson`, as Markdown tables, which chunk by rows under their header.
+
+    An array of objects is a table with a column for every key path of its objects, nested objects flattened with dots,
+    so objects of differing keys share one table.
+    Any other value is a table of key paths and values, every array of objects in it a table of its own under a heading of its path,
+    and every other array a cell of JSON.
+
+    Raises:
+        ValueError: If the file is no JSON.
+
+    Examples:
+        >>> print(Json().parse_bytes(b'{"name": "a", "tags": [1], "items": [{"id": 1, "x": {"y": 2}}, {"id": 2}]}', ".json").markdown)
+        | key | value |
+        | --- | --- |
+        | name | a |
+        | tags | [1] |
+        <BLANKLINE>
+        ## items
+        <BLANKLINE>
+        | id | x.y |
+        | --- | --- |
+        | 1 | 2 |
+        | 2 |  |
+    """
+
+    def __call__(self, source: Path, /) -> Parsed:
+        return self.parse_bytes(source.read_bytes(), source.suffix)
+
+    def parse_bytes(self, content: bytes, suffix: str, /) -> Parsed:
+        """Renders the content of a file with a suffix, which tells JSON Lines apart."""
+        decoded = decode(content)
+
+        if decoded is None:
+            raise ValueError("The content is not text")
+
+        value: JsonEntry = (
+            [json.loads(line) for line in decoded.text.splitlines() if line.strip()]
+            if suffix.lower() in _JSON_LINES
+            else json.loads(decoded.text)
+        )
+        pairs: list[tuple[str, JsonEntry]] = []
+        tables: list[tuple[str, list[Mapping[str, JsonEntry]]]] = []
+
+        for path, item in _flat(value):
+            if _records(item):
+                tables.append((path, item))
+            else:
+                pairs.append((path, item))
+
+        blocks: list[str] = []
+
+        if pairs:
+            blocks.append(
+                markdown_table(
+                    ["key", "value"],
+                    ([markdown_cell(path), _json_cell(item)] for path, item in pairs),
+                )
+            )
+
+        for path, rows in tables:
+            flat = [dict(_flat(row)) for row in rows]
+            columns = list(dict.fromkeys(key for row in flat for key in row))
+            table = markdown_table(
+                map(markdown_cell, columns),
+                (
+                    [
+                        _json_cell(row[column]) if column in row else ""
+                        for column in columns
+                    ]
+                    for row in flat
+                ),
+            )
+            blocks.append(f"## {path}\n\n{table}" if path else table)
+
+        return Parsed(markdown="\n\n".join(blocks) + "\n", encoding=decoded.encoding)
+
+
+_EMAIL_HEADERS = ("From", "To", "Cc", "Date")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Email(Parser):
+    r"""Parses an email in the MIME format, such as a `.eml` file, into its subject, senders, recipients, date, body, and attachments.
+
+    The plain text body is preferred, an HTML one is converted to Markdown with its images dropped,
+    and the attachments are listed by name.
+    An HTML body needs the `email` extra.
+
+    Examples:
+        >>> print(Email().parse_bytes(b"Subject: Hi\nFrom: a@b.c\nContent-Type: text/html\n\n<p>Hello <b>you</b></p>").markdown)
+        # Hi
+        <BLANKLINE>
+        - **From:** a@b.c
+        <BLANKLINE>
+        Hello **you**
+    """
+
+    def __call__(self, source: Path, /) -> Parsed:
+        return self.parse_bytes(source.read_bytes())
+
+    def parse_bytes(self, content: bytes, /) -> Parsed:
+        """Parses the bytes of an email."""
+        message = BytesParser(_class=EmailMessage, policy=policy.default).parsebytes(
+            content
+        )
+        headers = [
+            f"- **{name}:** {value}"
+            for name in _EMAIL_HEADERS
+            if (value := message.get(name))
+        ]
+        blocks = [f"# {message.get('Subject') or '(no subject)'}", "\n".join(headers)]
+
+        if (body := message.get_body(preferencelist=("plain", "html"))) is not None:
+            try:
+                text = str(body.get_content())
+            except LookupError:
+                # An unknown charset, decoded as UTF-8 with its errors replaced.
+                text = bytes(body.get_payload(decode=True)).decode(errors="replace")
+
+            if body.get_content_subtype() == "html":
+                with extra_hint("Email", "email"):
+                    from markdownify import markdownify
+
+                text = markdownify(text, heading_style="ATX", strip=["img"])
+
+            blocks.append(text.strip())
+
+        if names := [
+            part.get_filename() or "(unnamed)" for part in message.iter_attachments()
+        ]:
+            blocks.append(
+                "## Attachments\n\n" + "\n".join(f"- {name}" for name in names)
+            )
+
+        return Parsed(markdown="\n\n".join(block for block in blocks if block) + "\n")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -211,6 +388,46 @@ class WithFallback(Parser):
             raise outcome
 
         return outcome
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Repaired(Parser):
+    r"""Parses with a parser, then repairs the prose of its Markdown, never code, math, HTML, or link targets.
+
+    The repairs run with the parse, such as in its worker process, and before chunking,
+    so the chunks index the repaired text and their spans point into it.
+    Wrap only the parsers whose output needs a repair, such as dehyphenation for PDFs,
+    since a hyphen at the end of a line elsewhere is usually meant.
+
+    Args:
+        parser: The parser whose Markdown is repaired.
+        dehyphenate: Whether to join the words a hyphen at the end of a line split, see `exar.ingest.repair.dehyphenate`.
+        footnotes: Whether to inline every footnote at its references, see `exar.ingest.repair.inline_footnotes`.
+
+    Examples:
+        >>> import tempfile
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     path = Path(tmp, "scan.txt")
+        ...     _ = path.write_text("A Verbin-\ndung[^1].\n\n[^1]: A note.\n")
+        ...     Repaired(parser=PlainText(fence=False))(path).markdown
+        'A Verbindung (A note).\n\n'
+    """
+
+    parser: Parser
+    dehyphenate: bool = True
+    footnotes: bool = True
+
+    def __call__(self, source: Path, /) -> Parsed:
+        parsed = self.parser(source)
+        markdown = parsed.markdown
+
+        if self.dehyphenate:
+            markdown = dehyphenate(markdown)
+
+        if self.footnotes:
+            markdown = inline_footnotes(markdown)
+
+        return replace(parsed, markdown=markdown)
 
 
 # Formats whose images pandoc reads from inside the file, so it extracts them.

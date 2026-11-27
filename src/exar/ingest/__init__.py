@@ -4,9 +4,11 @@ The building blocks follow the path of a document:
 
 - `model`: Parsed documents, their images, and their chunks.
 - `parsers`: Turn source files into Markdown with their images, routed by suffix and with fallbacks.
+- `repair`: Repair the prose of parsed Markdown, such as words hyphenated at line ends and footnotes.
 - `assets`: Decide which images to describe and caption them with an injected vision model.
 - `media`: Render PDF pages, sample video and animation frames, and sanitize images.
 - `chunkers`: Split Markdown and tables into chunks with their character spans and line ranges.
+- `coref`: Join chunks that depend on the chunk before them, as an injected `exar.typing.Judge` decides (`CorefMerge`).
 - `pipeline`: Chunk a document into a store and stamp its digest and the fingerprint of the chunker last (`index_document`).
 - `executors`: Run crash-prone native code in worker processes that survive crashes, hangs, and leaks.
 - `host`: Build components from the options of an operator, fingerprint them, and run them off the event loop
@@ -47,6 +49,7 @@ if TYPE_CHECKING:
         Whole,
         annotate,
     )
+    from .coref import COREF_INSTRUCTIONS, CorefMerge
     from .executors import (
         WORKER_TMP_PREFIX,
         ProcessPool,
@@ -97,6 +100,8 @@ if TYPE_CHECKING:
     from .parsers import (
         Anydoc,
         Docling,
+        Email,
+        Json,
         Kreuzberg,
         MarkItDown,
         Pandoc,
@@ -105,16 +110,19 @@ if TYPE_CHECKING:
         PdfOxide,
         Pdftotext,
         PlainText,
+        Repaired,
         Route,
         WithFallback,
         failed,
         garbled,
     )
     from .pipeline import ChunkStore, Ingested, index_document
+    from .repair import dehyphenate, inline_footnotes
 
 __all__ = [
     "ANIMATED_MEDIA_TYPES",
     "ANIMATION_INSTRUCTIONS",
+    "COREF_INSTRUCTIONS",
     "IMAGE_INSTRUCTIONS",
     "MAX_DIMENSION",
     "MAX_FRAMES",
@@ -130,12 +138,15 @@ __all__ = [
     "Chunk",
     "ChunkStore",
     "Chunker",
+    "CorefMerge",
     "Describe",
     "Device",
     "Docling",
+    "Email",
     "Frame",
     "Host",
     "Ingested",
+    "Json",
     "Kreuzberg",
     "MarkItDown",
     "MarkdownChunker",
@@ -151,6 +162,7 @@ __all__ = [
     "PlainText",
     "ProcessPool",
     "RecursiveChunker",
+    "Repaired",
     "Route",
     "Sample",
     "SemanticChunker",
@@ -167,6 +179,7 @@ __all__ = [
     "collect_assets",
     "configure",
     "contexts",
+    "dehyphenate",
     "downscale",
     "drop_assets",
     "extract_pages",
@@ -175,6 +188,7 @@ __all__ = [
     "garbled",
     "index_document",
     "informative",
+    "inline_footnotes",
     "limit_threads",
     "limit_worker",
     "link_images",

@@ -46,7 +46,7 @@ Repository = "https://github.com/wi2trier/exar"
 [project.optional-dependencies]
 a2a = ["a2a-sdk[http-server]>=1,<2"]
 all = [
-  "exar[a2a,anydoc,bpmn,cbrkit,claude-agent-sdk,docling,eval,http,kreuzberg,markitdown,mcp,media,pdf-oxide,pydantic-ai,semantic,sql,table,web]",
+  "exar[a2a,anydoc,bpmn,cbrkit,claude-agent-sdk,docling,email,eval,http,kreuzberg,markitdown,mcp,media,pdf-oxide,pydantic-ai,semantic,sql,table,web]",
 ]
 anydoc = ["exar[ingest]", "firecrawl-anydoc>=0.2,<1"]
 bpmn = ["exar[cbrkit]", "cbrkit[bpmn]>=2,<3", "pydantic-graph>=2,<3", "simpleeval>=1,<2"]
@@ -54,6 +54,7 @@ cbrkit = ["cbrkit>=2,<3"]
 chonkie = ["exar[ingest]", "chonkie>=1,<2"]
 claude-agent-sdk = ["exar[pydantic-ai]", "claude-agent-sdk>=0.2,<1"]
 docling = ["exar[ingest]", "docling>=2,<3", "pdf-inspector>=1,<2", "tesserocr>=2,<3"]
+email = ["exar[ingest]", "markdownify>=1,<2"]
 eval = ["pydantic-evals>=2,<3"]
 http = ["exar[pydantic-ai]", "httpx2>=2,<3"]
 ingest = ["pillow>=13,<14", "tree-sitter>=0.26,<1", "tree-sitter-markdown>=0.5,<1"]

@@ -2,6 +2,7 @@ import shutil
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
+from email.message import EmailMessage
 from io import BytesIO
 from pathlib import Path
 
@@ -10,6 +11,8 @@ import pytest
 
 from exar.ingest import (
     Docling,
+    Email,
+    Json,
     Kreuzberg,
     Pandoc,
     Parsed,
@@ -262,7 +265,9 @@ def _scan_pdf(path: Path) -> Path:
             Pandoc,
             None,
             _docx_with_images,
-            marks=pytest.mark.skipif(shutil.which("pandoc") is None, reason="needs pandoc"),
+            marks=pytest.mark.skipif(
+                shutil.which("pandoc") is None, reason="needs pandoc"
+            ),
         ),
         (Kreuzberg, "kreuzberg", _docx_with_images),
         (Docling, "docling", _docx_with_images),
@@ -286,3 +291,34 @@ def test_images_are_dropped_with_their_references_unless_extracted(
     assert all(path in extracted.markdown for path in extracted.assets)
     assert not dropped.assets
     assert "![" not in dropped.markdown
+
+
+def test_json_lines_of_differing_keys_share_a_table(tmp_path: Path) -> None:
+    source = tmp_path / "rows.JSONL"
+    source.write_text('{"a": 1, "b": {"c": "x|y"}}\n\n{"a": 2, "d": [1, 2]}\n')
+
+    assert Json()(source).markdown == (
+        "| a | b.c | d |\n| --- | --- | --- |\n| 1 | x\\|y |  |\n| 2 |  | [1, 2] |\n"
+    )
+
+    source.write_text("{")
+
+    with pytest.raises(ValueError):
+        Json()(source)
+
+
+def test_email_prefers_plain_text_and_lists_attachments() -> None:
+    message = EmailMessage()
+    message["Subject"] = "Report"
+    message["From"] = "a@example.org"
+    message["To"] = "b@example.org"
+    message.set_content("Plain body.")
+    message.add_alternative("<p>HTML body.</p>", subtype="html")
+    message.add_attachment(
+        b"%PDF", maintype="application", subtype="pdf", filename="r.pdf"
+    )
+
+    assert Email().parse_bytes(message.as_bytes()).markdown == (
+        "# Report\n\n- **From:** a@example.org\n- **To:** b@example.org\n\n"
+        "Plain body.\n\n## Attachments\n\n- r.pdf\n"
+    )

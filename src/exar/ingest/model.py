@@ -149,7 +149,9 @@ class Parsed:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Chunk:
-    """A passage of a document.
+    """A passage of a document, its text the span of the document between a prefix and a suffix.
+
+    The prefix and the suffix are context the chunker adds, so the text is `prefix + document[start:end] + suffix`.
 
     Args:
         text: The passage.
@@ -160,6 +162,8 @@ class Chunk:
         end_line: The 1-based line of the document its last character lies on.
         hierarchy: The titles of the parts of the document it lies in, outermost first, such as the headings of its sections,
             where the chunker knows them.
+        prefix: What its text starts with before its span, such as the headings above it or the header of its table.
+        suffix: What its text ends with after its span, such as the start of the next chunk as overlap.
     """
 
     text: str
@@ -169,6 +173,8 @@ class Chunk:
     start_line: int = 0
     end_line: int = 0
     hierarchy: tuple[str, ...] = ()
+    prefix: str = ""
+    suffix: str = ""
 
 
 def collect_assets(root: Path, *, limit: int | None = None) -> frozendict[str, Asset]:

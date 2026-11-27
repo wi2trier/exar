@@ -108,7 +108,10 @@ def test_markdown_keeps_images_and_splits_large_blocks() -> None:
 
 def test_markdown_keeps_sections_that_fit_and_the_front_matter_alone() -> None:
     pytest.importorskip("chonkie")
-    text = "---\ntitle: x\n---\n\n# A\n\nIntro.\n\n## B\n\n- one\n- two\n\n## C\n\n" + "word " * 30
+    text = (
+        "---\ntitle: x\n---\n\n# A\n\nIntro.\n\n## B\n\n- one\n- two\n\n## C\n\n"
+        + "word " * 30
+    )
     chunks = MarkdownChunker(size=64, min_characters=1)(text)
 
     assert [(chunk.text[:8], chunk.hierarchy) for chunk in chunks] == [
@@ -119,3 +122,35 @@ def test_markdown_keeps_sections_that_fit_and_the_front_matter_alone() -> None:
         ("word wor", ("A", "C")),
     ]
     assert "## B" in chunks[1].text and all(chunk.tokens <= 64 for chunk in chunks)
+
+
+def test_markdown_context_prefixes_missing_headings_and_keeps_spans() -> None:
+    pytest.importorskip("chonkie")
+    text = "# A\n\n## B\n\n" + "word " * 120 + "\n\n" + TABLE
+    chunks = MarkdownChunker(size=128, rows=None, min_characters=1, context=True)(text)
+
+    assert chunks[0].text.startswith("# A\n\n## B\n\nword")
+    assert all(chunk.text.startswith("# A\n## B\n\n") for chunk in chunks[1:])
+    assert all(chunk.tokens <= 128 for chunk in chunks)
+    assert all(
+        text[chunk.start : chunk.end].strip() in chunk.text
+        for chunk in chunks
+        if "|" not in chunk.text
+    )
+
+
+@pytest.mark.parametrize(
+    "chunker",
+    [
+        MarkdownChunker(size=64, rows=2, min_characters=1, context=True, overlap=8),
+        MarkdownChunker(size=64, rows=None, min_characters=1),
+        TableChunker(size=2, overlap=1),
+        RecursiveChunker(size=32, overlap=4, min_characters=1),
+    ],
+)
+def test_text_is_prefix_span_and_suffix(chunker: Chunker) -> None:
+    pytest.importorskip("chonkie")
+    text = "# A\n\n## B\n\n" + "word " * 30 + "\n\n" + TABLE
+
+    for chunk in chunker(text):
+        assert chunk.text == chunk.prefix + text[chunk.start : chunk.end] + chunk.suffix

@@ -48,7 +48,9 @@ def annotate(text: str, chunks: Iterable[Chunk]) -> list[Chunk]:
         [(2, 3)]
     """
     # Each line starts one past the end of the one before, summed without a Python loop.
-    starts = list(accumulate(map(add, map(len, text.split("\n")), repeat(1)), initial=0))
+    starts = list(
+        accumulate(map(add, map(len, text.split("\n")), repeat(1)), initial=0)
+    )
 
     return [
         replace(
@@ -118,7 +120,7 @@ class Whole(Chunker):
 
     Examples:
         >>> Whole()("one two\\nthree")
-        [Chunk(text='one two\\nthree', start=0, end=13, tokens=3, start_line=1, end_line=2, hierarchy=())]
+        [Chunk(text='one two\\nthree', start=0, end=13, tokens=3, start_line=1, end_line=2, hierarchy=(), prefix='', suffix='')]
     """
 
     def __call__(self, text: str, /) -> list[Chunk]:
@@ -288,17 +290,27 @@ class MarkdownChunker(_Sized):
     The front matter is one chunk of its own, and each chunk knows the headings of the sections it lies in as its hierarchy.
     A table of more than `size` tokens is split like `TableChunker` into chunks of `rows` rows that repeat its header,
     a longer block like `RecursiveChunker`, its first chunk keeping the heading before it.
+    With `context`, every chunk starts with the lines of the headings above it that it lacks, as the document writes them,
+    so it reads on its own, while its span stays that of its passage.
 
     Args:
         size: Most tokens of a chunk, but for a table row of more.
         overlap: Tokens of the next chunk appended to every chunk, which keeps its own span.
         tokenizer: The chonkie tokenizer.
-        rows: Rows of a chunk of a table that is split.
+        rows: Rows of a chunk of a table that is split, as many as fit in `size` tokens if None.
         min_characters: Fewest characters of a chunk of a passage that is split.
+        context: Whether to start every chunk with the headings of its hierarchy,
+            which take at most an eighth of `size`, the outermost dropped first.
+
+    Examples:
+        >>> text = "# A\\n\\n## B\\n\\n" + "Words of a long passage. " * 24
+        >>> [chunk.text.partition("\\n\\n")[0] for chunk in MarkdownChunker(size=256, context=True)(text)]
+        ['# A', '# A\\n## B', '# A\\n## B', '# A\\n## B']
     """
 
-    rows: _Rows = 3
+    rows: _Rows | None = 3
     min_characters: int = 24
+    context: bool = False
 
     def _split(self, text: str, /) -> list[Chunk]:
         with extra_hint("MarkdownChunker", "chonkie"):
@@ -310,4 +322,5 @@ class MarkdownChunker(_Sized):
             size=self.size,
             rows=self.rows,
             min_characters=self.min_characters,
+            context=self.context,
         )
