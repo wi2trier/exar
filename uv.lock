@@ -995,10 +995,14 @@ all = [
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "tesserocr" },
     { name = "trafilatura" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 anydoc = [
     { name = "firecrawl-anydoc" },
     { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 bpmn = [
     { name = "cbrkit", extra = ["bpmn"] },
@@ -1011,6 +1015,8 @@ cbrkit = [
 chonkie = [
     { name = "chonkie" },
     { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 claude-agent-sdk = [
     { name = "claude-agent-sdk" },
@@ -1022,6 +1028,8 @@ docling = [
     { name = "pdf-inspector" },
     { name = "pillow" },
     { name = "tesserocr" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 eval = [
     { name = "pydantic-evals" },
@@ -1033,14 +1041,20 @@ http = [
 ]
 ingest = [
     { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 kreuzberg = [
     { name = "kreuzberg" },
     { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 markitdown = [
     { name = "markitdown", extra = ["docx", "outlook", "pdf", "pptx", "xls", "xlsx"] },
     { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 mcp = [
     { name = "fastmcp" },
@@ -1051,14 +1065,20 @@ media = [
     { name = "opencv-python-headless" },
     { name = "pillow" },
     { name = "pypdfium2" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 pdf-inspector = [
     { name = "pdf-inspector" },
     { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 pdf-oxide = [
     { name = "pdf-oxide" },
     { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 pydantic-ai = [
     { name = "pydantic-ai-harness" },
@@ -1067,6 +1087,8 @@ pydantic-ai = [
 semantic = [
     { name = "chonkie", extra = ["semantic"] },
     { name = "pillow" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-markdown" },
 ]
 sql = [
     { name = "pydantic-ai-harness" },
@@ -1153,6 +1175,8 @@ requires-dist = [
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'sql'", specifier = ">=2,<3" },
     { name = "tesserocr", marker = "extra == 'docling'", specifier = ">=2,<3" },
     { name = "trafilatura", marker = "extra == 'web'", specifier = ">=2,<3" },
+    { name = "tree-sitter", marker = "extra == 'ingest'", specifier = ">=0.26,<1" },
+    { name = "tree-sitter-markdown", marker = "extra == 'ingest'", specifier = ">=0.5,<1" },
 ]
 provides-extras = ["a2a", "all", "anydoc", "bpmn", "cbrkit", "chonkie", "claude-agent-sdk", "docling", "eval", "http", "ingest", "kreuzberg", "markitdown", "mcp", "media", "pdf-inspector", "pdf-oxide", "pydantic-ai", "semantic", "sql", "table", "web"]
 
@@ -4119,6 +4143,22 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ee/89/9b773dee0f8961d1bb8d7baf0a204ab587618df19897c1ef260916f318ec/tree_sitter_javascript-0.25.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:1b852d3aee8a36186dbcc32c798b11b4869f9b5041743b63b65c2ef793db7a54", size = 98377, upload-time = "2025-09-01T07:13:41.838Z" },
     { url = "https://files.pythonhosted.org/packages/3b/dc/d90cb1790f8cec9b4878d278ad9faf7c8f893189ce0f855304fd704fc274/tree_sitter_javascript-0.25.0-cp310-abi3-win_amd64.whl", hash = "sha256:e5ed840f5bd4a3f0272e441d19429b26eedc257abe5574c8546da6b556865e3c", size = 62975, upload-time = "2025-09-01T07:13:42.828Z" },
     { url = "https://files.pythonhosted.org/packages/2e/1f/f9eba1038b7d4394410f3c0a6ec2122b590cd7acb03f196e52fa57ebbe72/tree_sitter_javascript-0.25.0-cp310-abi3-win_arm64.whl", hash = "sha256:622a69d677aa7f6ee2931d8c77c981a33f0ebb6d275aa9d43d3397c879a9bb0b", size = 61668, upload-time = "2025-09-01T07:13:43.803Z" },
+]
+
+[[package]]
+name = "tree-sitter-markdown"
+version = "0.5.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/ee/d54192a828a931082bcb4f71d4e66369318ae8fb0f30758ade716c6c92fb/tree_sitter_markdown-0.5.4.tar.gz", hash = "sha256:5fc422637d41aa5b286551a8e6fa674733d92dac1c6a42c1d4ada0be59045bd3", size = 253770, upload-time = "2026-10-24T09:40:59.047Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/f0/b46faba6a351d187ba30e3b7046ff6582c3620da712525bd041aadf188ca/tree_sitter_markdown-0.5.4-cp310-abi3-macosx_10_9_x86_64.whl", hash = "sha256:c7b007683159a0bf0a57dbe4b232b387d6f68a75889c8e1fea114b6832cabeca", size = 141419, upload-time = "2026-10-24T09:40:50.499Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/f5/0fb8fc8b0d0c0e7dcf2878096959ab1dab5b205e52d0c5aed96c17e47b3b/tree_sitter_markdown-0.5.4-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:fcee0e62898deb43a2686508606ed3bcbd6e0e20050dd9423b034171e8315eb3", size = 149559, upload-time = "2026-10-24T09:40:51.699Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/71/c339d85c95d7f1691a682aab400bc87b5598214eb775d81ec7942bcbc808/tree_sitter_markdown-0.5.4-cp310-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:6a32f03547abbb5f444b2ed73d3d3b89c243b52c29bed2e384df06b98d66bfae", size = 188280, upload-time = "2026-10-24T09:40:52.805Z" },
+    { url = "https://files.pythonhosted.org/packages/b3/45/60c0b093a9688fc48835544338268209bab1a7d6cab2978fac6083ef431d/tree_sitter_markdown-0.5.4-cp310-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:27874a3edabdf4540a278c8ad517faba305fcc389a205bfd82cfd622229838e0", size = 188815, upload-time = "2026-10-24T09:40:53.708Z" },
+    { url = "https://files.pythonhosted.org/packages/20/c8/158788fb22f174574219c17897eebf80e182bac91a24bd6eb4749a95f40e/tree_sitter_markdown-0.5.4-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:b46f2d9cd9887092f3a96853f7c31da6b806d42c00e57f589bb60af102b589f4", size = 187051, upload-time = "2026-10-24T09:40:54.745Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/cc/f3351f4bb923195112cee407ae2ae6dd40c27b5b0936c3cca7ffc88d39c5/tree_sitter_markdown-0.5.4-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:333a03bd72c51323594e33a8551a8d0aad60ce93b8e02e5f7aaae208f9cd2243", size = 186663, upload-time = "2026-10-24T09:40:55.825Z" },
+    { url = "https://files.pythonhosted.org/packages/39/83/11598ac8aca1b6f129f82ed00ccec90bc072a3f48dbd6d9fc626349cd1cf/tree_sitter_markdown-0.5.4-cp310-abi3-win_amd64.whl", hash = "sha256:99f0e61ccfc1a9f80f886a510c74690d205de5e51eefd368c41a4cdf73b18817", size = 142962, upload-time = "2026-10-24T09:40:56.84Z" },
+    { url = "https://files.pythonhosted.org/packages/31/38/231a22c2aa15badc4a7f70368bd62ad672b9bb0daf3fad9a0a5d2ad201e8/tree_sitter_markdown-0.5.4-cp310-abi3-win_arm64.whl", hash = "sha256:898a2124be2bc9994dec979de146c3d6cf0e967baf59d5c2fe7ff77c6d5c0cae", size = 140655, upload-time = "2026-10-24T09:40:57.917Z" },
 ]
 
 [[package]]

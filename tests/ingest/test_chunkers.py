@@ -31,7 +31,7 @@ def test_whole() -> None:
     [
         TokenChunker(size=32),
         RecursiveChunker(size=40, min_characters=1),
-        MarkdownChunker(),
+        MarkdownChunker(size=64),
     ],
 )
 def test_chonkie_spans_and_lines(chunker: Chunker) -> None:
@@ -73,7 +73,7 @@ def test_table() -> None:
             RecursiveChunker(size=64, min_characters=1),
             TEXT,
         ),
-        (MarkdownChunker(overlap=8), MarkdownChunker(), TEXT),
+        (MarkdownChunker(size=64, overlap=8), MarkdownChunker(size=64), TEXT),
         (TableChunker(size=2, overlap=1), TableChunker(size=2), TABLE),
     ],
 )
@@ -104,3 +104,18 @@ def test_markdown_keeps_images_and_splits_large_blocks() -> None:
     assert chunks[0].text.startswith("Intro ![alt](a.png) more.")
     assert all(chunk.tokens <= 64 for chunk in chunks)
     assert sum(chunk.text.startswith("| a | b |") for chunk in chunks) == 3
+
+
+def test_markdown_keeps_sections_that_fit_and_the_front_matter_alone() -> None:
+    pytest.importorskip("chonkie")
+    text = "---\ntitle: x\n---\n\n# A\n\nIntro.\n\n## B\n\n- one\n- two\n\n## C\n\n" + "word " * 30
+    chunks = MarkdownChunker(size=64, min_characters=1)(text)
+
+    assert [(chunk.text[:8], chunk.hierarchy) for chunk in chunks] == [
+        ("---\ntitl", ()),
+        ("# A\n\nInt", ("A",)),
+        ("## C\n\nwo", ("A", "C")),
+        ("word wor", ("A", "C")),
+        ("word wor", ("A", "C")),
+    ]
+    assert "## B" in chunks[1].text and all(chunk.tokens <= 64 for chunk in chunks)

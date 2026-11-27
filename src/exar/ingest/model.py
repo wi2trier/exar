@@ -158,6 +158,8 @@ class Chunk:
         tokens: Its length in tokens of the chunker.
         start_line: The 1-based line of the document its first character lies on.
         end_line: The 1-based line of the document its last character lies on.
+        hierarchy: The titles of the parts of the document it lies in, outermost first, such as the headings of its sections,
+            where the chunker knows them.
     """
 
     text: str
@@ -166,6 +168,7 @@ class Chunk:
     tokens: int
     start_line: int = 0
     end_line: int = 0
+    hierarchy: tuple[str, ...] = ()
 
 
 def collect_assets(root: Path, *, limit: int | None = None) -> frozendict[str, Asset]:

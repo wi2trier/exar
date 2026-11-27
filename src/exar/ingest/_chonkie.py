@@ -1,6 +1,6 @@
 """The chonkie backends of `exar.ingest.chunkers`, one cached chonkie chunker per configuration and process."""
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import replace
 from functools import cache
 
@@ -9,6 +9,7 @@ from chonkie.tokenizer import AutoTokenizer
 from chonkie.types import Chunk as ChonkieChunk
 
 from ..helpers import frozendict
+from ._markdown import pieces
 from .model import Chunk
 
 
@@ -84,77 +85,46 @@ def overlap(
 
 
 @cache
-def _chef(tokenizer: str) -> tuple[chonkie.MarkdownChef, AutoTokenizer]:
-    return chonkie.MarkdownChef(tokenizer=tokenizer), AutoTokenizer(tokenizer)
-
-
-def _blocks(text: str, chef: chonkie.MarkdownChef) -> Iterator[tuple[int, int, bool]]:
-    """The spans of the tables, code blocks, and passages between them that tile *text*, and whether each is a table.
-
-    A block nested in an earlier one, such as a table in a code block, belongs to the earlier one.
-    """
-    document = chef.parse(text)
-    position = 0
-
-    for start, end, table in sorted(
-        [
-            *((table.start_index, table.end_index, True) for table in document.tables),
-            *((code.start_index, code.end_index, False) for code in document.code),
-        ]
-    ):
-        if start < position:
-            continue
-
-        yield position, start, False
-        yield start, end, table
-        position = end
-
-    yield position, len(text), False
+def _counter(tokenizer: str) -> AutoTokenizer:
+    return AutoTokenizer(tokenizer)
 
 
 def markdown(
     text: str, *, tokenizer: str, size: int, rows: int, min_characters: int
 ) -> list[Chunk]:
-    """Splits Markdown into its text passages, tables, and code blocks, in order of position.
+    """Splits Markdown into chunks of whole sections, or of their blocks, in order of position, each with the headings above it as its hierarchy.
 
-    A passage is all text between tables and code blocks, images included,
-    so the chunks tile the document but for the whitespace between them.
-    A block of more than *size* tokens is split again,
+    The front matter is one chunk of its own, and a block of more than *size* tokens is split,
     a table into chunks of *rows* rows that repeat its header, anything else recursively.
     """
-    chef, counter = _chef(tokenizer)
-    chunks: list[Chunk] = []
+    counter = _counter(tokenizer)
 
-    for start, end, table in _blocks(text, chef):
-        block = text[start:end]
-
-        if not block.strip():
-            continue
-
-        if (tokens := counter.count_tokens(block)) > size and (
-            parts := (
-                chunk(block, chonkie.TableChunker, tokenizer="row", chunk_size=rows)
-                if table
-                else chunk(
-                    block,
-                    chonkie.RecursiveChunker,
-                    tokenizer=tokenizer,
-                    chunk_size=size,
-                    min_characters_per_chunk=min_characters,
-                )
-            )
-        ):
-            chunks.extend(
-                Chunk(
-                    text=part.text,
-                    start=start + part.start,
-                    end=start + part.end,
-                    tokens=counter.count_tokens(part.text),
-                )
-                for part in parts
-            )
+    def split(block: str, limit: int, table: bool) -> list[Chunk]:
+        if table:
+            # Counted as tokens, not as the rows that split them.
+            parts = [
+                replace(part, tokens=counter.count_tokens(part.text))
+                for part in chunk(block, chonkie.TableChunker, tokenizer="row", chunk_size=rows)
+            ]
         else:
-            # Within the size, or a table too malformed to split by rows.
-            chunks.append(Chunk(text=block, start=start, end=end, tokens=tokens))
+            parts = chunk(
+                block,
+                chonkie.RecursiveChunker,
+                tokenizer=tokenizer,
+                chunk_size=limit,
+                min_characters_per_chunk=min_characters,
+            )
 
-    return chunks
+        # A table too malformed to split by rows stays whole.
+        return parts or [Chunk(text=block, start=0, end=len(block), tokens=counter.count_tokens(block))]
+
+    return [
+        Chunk(
+            text=text[piece.start : piece.end] if piece.text is None else piece.text,
+            start=piece.start,
+            end=piece.end,
+            tokens=piece.tokens,
+            hierarchy=piece.hierarchy,
+        )
+        for piece in pieces(text, size=size, count=counter.count_tokens, split=split)
+    ]

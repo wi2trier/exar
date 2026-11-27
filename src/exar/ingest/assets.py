@@ -6,16 +6,17 @@ such as an async function returning the output of a pydantic-ai agent for the pr
 grounded in the text around each of its occurrences.
 """
 
+import bisect
 import io
 import logging
-import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, replace
 from typing import Protocol
 
 import PIL.Image
 
 from ..helpers import bounded_gather, frozendict
+from ._markdown import Image, images
 from .media import sanitize_image
 from .model import Asset, AssetRole, Parsed, Sample, vision_media_type
 
@@ -150,26 +151,42 @@ def perceptual_key(data: bytes, size: int = 8) -> int | None:
     return None if bits in (0, (1 << size * size) - 1) else bits
 
 
-_IMAGE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
-"""A Markdown image reference, its alternative text and its path."""
-
-
 def relink(markdown: str, link: Callable[[str], str | None], /) -> str:
     """Points every image reference at the path *link* returns for its own, dropping it where that is None.
 
-    Only the image syntax of Markdown is rewritten, so prose naming a file stays.
+    Only the image syntax of Markdown is rewritten, so prose naming a file and code showing the syntax stay.
 
     Examples:
         >>> relink("a ![x](a.png) b ![](b.png)", lambda path: None if path == "b.png" else f"img/{path}")
         'a ![x](img/a.png) b '
+        >>> relink("![x](a.png) `![x](a.png)`\\n```md\\n![x](a.png)\\n```", lambda _: None)
+        ' `![x](a.png)`\\n```md\\n![x](a.png)\\n```'
     """
 
-    def rewrite(match: re.Match[str]) -> str:
-        target = link(match.group(2).strip())
+    def rewrite(image: Image) -> str:
+        target = link(image.path)
 
-        return "" if target is None else f"![{match.group(1)}]({target})"
+        return "" if target is None else f"![{image.alt}]({target})"
 
-    return _IMAGE.sub(rewrite, markdown)
+    return _splice(markdown, images(markdown), rewrite, 0, len(markdown))
+
+
+def _splice(
+    markdown: str, images: Iterable[Image], rewrite: Callable[[Image], str], start: int, end: int
+) -> str:
+    """The text of *markdown* from *start* to *end* with every one of *images* that lies wholly in it rewritten."""
+    parts: list[str] = []
+    position = start
+
+    for image in images:
+        if start <= image.start and image.end <= end:
+            parts.append(markdown[position : image.start])
+            parts.append(rewrite(image))
+            position = image.end
+
+    parts.append(markdown[position:end])
+
+    return "".join(parts)
 
 
 def drop_assets(parsed: Parsed, /) -> Parsed:
@@ -194,17 +211,25 @@ def contexts(markdown: str, window: int = 400) -> dict[str, list[str]]:
         >>> contexts("Click ![the gear](ui.png) to open settings.")["ui.png"]
         ['Alternative text: the gear\\nSurrounding text: Click to open settings.']
     """
+    found = images(markdown)
+    starts = [image.start for image in found]
     result: dict[str, list[str]] = {}
 
-    for match in _IMAGE.finditer(markdown):
-        around = f"{markdown[max(0, match.start() - window) : match.start()]} {markdown[match.end() : match.end() + window]}"
-        prose = " ".join(_IMAGE.sub(" ", around).split())
-        alt = match.group(1).strip()
+    def prose(start: int, end: int) -> str:
+        # The images of the document are reused, so no window is parsed again.
+        near = found[bisect.bisect_left(starts, start) : bisect.bisect_left(starts, end)]
+
+        return _splice(markdown, near, lambda _: " ", start, end)
+
+    for image in found:
+        around = f"{prose(max(0, image.start - window), image.start)} {prose(image.end, image.end + window)}"
+        text = " ".join(around.split())
+        alt = image.alt.strip()
         parts = [
             *([f"Alternative text: {alt}"] if alt else []),
-            *([f"Surrounding text: {prose}"] if prose else []),
+            *([f"Surrounding text: {text}"] if text else []),
         ]
-        result.setdefault(match.group(2).strip(), []).append("\n".join(parts))
+        result.setdefault(image.path, []).append("\n".join(parts))
 
     return result
 

@@ -10,6 +10,8 @@ import bisect
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, replace
+from itertools import accumulate, repeat
+from operator import add
 from typing import Annotated, Protocol
 
 from pydantic import Field
@@ -45,7 +47,8 @@ def annotate(text: str, chunks: Iterable[Chunk]) -> list[Chunk]:
         >>> [(c.start_line, c.end_line) for c in annotate("a\\nb\\nc", [chunk])]
         [(2, 3)]
     """
-    starts = [0, *(index + 1 for index, char in enumerate(text) if char == "\n")]
+    # Each line starts one past the end of the one before, summed without a Python loop.
+    starts = list(accumulate(map(add, map(len, text.split("\n")), repeat(1)), initial=0))
 
     return [
         replace(
@@ -115,7 +118,7 @@ class Whole(Chunker):
 
     Examples:
         >>> Whole()("one two\\nthree")
-        [Chunk(text='one two\\nthree', start=0, end=13, tokens=3, start_line=1, end_line=2)]
+        [Chunk(text='one two\\nthree', start=0, end=13, tokens=3, start_line=1, end_line=2, hierarchy=())]
     """
 
     def __call__(self, text: str, /) -> list[Chunk]:
@@ -278,11 +281,13 @@ class TableChunker(_Sized):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class MarkdownChunker(_Sized):
-    """Splits Markdown into its text passages, tables, and code blocks.
+    """Splits Markdown into chunks of whole sections, or of their blocks where a section is too long.
 
-    A passage is all text between tables and code blocks, images included, so the chunks cover the document.
+    A section that fits in `size` tokens is one chunk, else its blocks, such as paragraphs, list items, code blocks,
+    and subsections, are joined while they fit, a heading or list marker kept with the block after it.
+    The front matter is one chunk of its own, and each chunk knows the headings of the sections it lies in as its hierarchy.
     A table of more than `size` tokens is split like `TableChunker` into chunks of `rows` rows that repeat its header,
-    a longer passage or code block like `RecursiveChunker`.
+    a longer block like `RecursiveChunker`, its first chunk keeping the heading before it.
 
     Args:
         size: Most tokens of a chunk, but for a table row of more.
