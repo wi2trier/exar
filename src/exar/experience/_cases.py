@@ -67,7 +67,7 @@ class StorageExperience[K, I, O]:
     retriever: Callable[[int], Sequence[AnyCbrFunc[K, _Case[I, O], Float]]] | None = (
         None
     )
-    retainer: Retainer[K, _Case[I, O]] = field(default_factory=Retainer)
+    retainer: Retainer[K, _Case[I, O]] = field(default_factory=Retainer[K, _Case[I, O]])
     penalty: float = 0.5
 
     async def retrieve(

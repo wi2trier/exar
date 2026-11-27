@@ -77,6 +77,11 @@ test = ["pytest>=9,<10", "pytest-asyncio>=1,<2", "pytest-cov>=7,<8"]
 requires = ["uv-build>=0.13,<1"]
 build-backend = "uv_build"
 
+[tool.basedpyright]
+# pydantic-ai's output types and pydantic's `TypeAdapter` take a `TypeForm` (PEP 747),
+# which pyright only infers for type aliases and `Annotated` forms behind this flag.
+enableExperimentalFeatures = true
+
 [tool.pytest]
 addopts = [
   "--cov=src/exar",
