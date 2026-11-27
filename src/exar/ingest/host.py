@@ -18,7 +18,8 @@ from functools import cache
 from pathlib import Path
 from typing import ClassVar, Literal, Protocol, runtime_checkable
 
-from pydantic import Field, TypeAdapter
+from pydantic import Field, PydanticSchemaGenerationError, TypeAdapter
+from pydantic_core import PydanticSerializationError
 
 from ..memory import digest
 from .model import Chunk, Parsed
@@ -177,6 +178,9 @@ def fingerprint(component: object, /) -> str:
     The versions of the libraries it runs on never count.
     An `Offloaded` component is the component it runs.
 
+    Raises:
+        TypeError: For a component whose options pydantic cannot dump, such as one of an arbitrary class.
+
     Examples:
         >>> from exar.ingest import Docling, TokenChunker
         >>> fingerprint(TokenChunker(size=512)) == fingerprint(offloaded(TokenChunker)({"size": "512"}, Host()))
@@ -185,12 +189,22 @@ def fingerprint(component: object, /) -> str:
         False
         >>> fingerprint(Docling(threads=4)) == fingerprint(Docling())
         True
+        >>> fingerprint(lambda text: [])
+        Traceback (most recent call last):
+        TypeError: function has options pydantic cannot dump
     """
     if isinstance(component, Offloaded):
         return fingerprint(component.func)
 
     cls = type(component)
-    options = _adapter(cls).dump_json(component).decode()
+
+    try:
+        options = _adapter(cls).dump_json(component).decode()
+    except (PydanticSchemaGenerationError, PydanticSerializationError) as error:
+        raise TypeError(
+            f"{cls.__qualname__} has options pydantic cannot dump"
+        ) from error
+
     name = f"{cls.__module__}.{cls.__qualname__}"
 
     # Revision 0 adds nothing, so the fingerprints of the components that never raised it stay.
