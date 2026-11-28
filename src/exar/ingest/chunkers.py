@@ -38,6 +38,11 @@ class Chunker(Protocol):
 
     def __call__(self, text: str, /) -> Sequence[Chunk]: ...
 
+    def prepare(self) -> None:
+        """Loads every model the first call would download, none unless a chunker overrides it."""
+        # A body beyond the docstring, since a protocol method without one is abstract.
+        return
+
 
 def annotate(text: str, chunks: Iterable[Chunk]) -> list[Chunk]:
     """Sets the line range of chunks of a document from their character span.
@@ -103,6 +108,13 @@ class _Overlapping(Chunker, ABC):
         return annotate(
             text, overlap(text, chunks, size=self.overlap, tokenizer=self.tokenizer)
         )
+
+    def prepare(self) -> None:
+        """Loads the tokenizer, which downloads one named after a model of a hub."""
+        with extra_hint(type(self).__name__, "chonkie"):
+            from ._chonkie import load_tokenizer
+
+        _ = load_tokenizer(self.tokenizer)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -249,6 +261,14 @@ class SemanticChunker(_Sized):
             min_sentences_per_chunk=self.min_sentences,
             min_characters_per_sentence=self.min_characters,
         )
+
+    def prepare(self) -> None:
+        """Loads the tokenizer of the overlap and the embedding model."""
+        with extra_hint("SemanticChunker", "semantic"):
+            from ._chonkie import load_embeddings, load_tokenizer
+
+        _ = load_tokenizer(self.tokenizer)
+        load_embeddings(self.model)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

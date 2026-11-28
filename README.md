@@ -388,6 +388,7 @@ trace = run(app.workflows["pipeline"], 1, app.config)
 The `overlap` of every chunker appends the first tokens of the next chunk to a chunk, counted by its `tokenizer`, so a chunk keeps its own span.
 Parsers and chunkers are frozen, picklable dataclasses, which `ProcessPool` (`exar.ingest.executors`) runs in worker processes that keep their models warm.
 A host builds them with `configure` from the facts of its `Host` they have a field for, such as threads, OCR languages, or device, and then the options of its operator, refusing an option no field takes, and `offloaded` also runs them on the executor of the host as async components (`exar.ingest.host`).
+Every component can `prepare`, loading ahead of its first call every model that call would download, such as the layout and table models of `Docling` or a tokenizer of a model hub, so a host fetches them once and then runs offline, and an `Offloaded` one prepares where it runs.
 A crash of a worker fails its task alone, and a task that times out or is cancelled is killed with its worker and the processes it started, such as `pandoc`, while `max_tasks=1` runs every task in a fresh process.
 The workers contain crashes and hangs but are no security boundary, as they run with the privileges of the caller, which unpickles their replies.
 

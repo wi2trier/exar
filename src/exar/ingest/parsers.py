@@ -67,6 +67,11 @@ class Parser(Protocol):
 
     def __call__(self, source: Path, /) -> Parsed: ...
 
+    def prepare(self) -> None:
+        """Loads every model the first call would download, none unless a parser overrides it."""
+        # A body beyond the docstring, since a protocol method without one is abstract.
+        return
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PlainText(Parser):
@@ -299,6 +304,13 @@ class Route(Parser):
 
         return parser(source)
 
+    def prepare(self) -> None:
+        for parser in self.parsers.values():
+            parser.prepare()
+
+        if self.default is not None:
+            self.default.prepare()
+
 
 def failed(outcome: Parsed | Exception, /) -> bool:
     """Whether a parser raised."""
@@ -389,6 +401,10 @@ class WithFallback(Parser):
 
         return outcome
 
+    def prepare(self) -> None:
+        self.primary.prepare()
+        self.fallback.prepare()
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Repaired(Parser):
@@ -428,6 +444,9 @@ class Repaired(Parser):
             markdown = inline_footnotes(markdown)
 
         return replace(parsed, markdown=markdown)
+
+    def prepare(self) -> None:
+        self.parser.prepare()
 
 
 # Formats whose images pandoc reads from inside the file, so it extracts them.
@@ -764,3 +783,9 @@ class Docling(Parser):
         from ._docling import parse
 
         return parse(source, self)
+
+    def prepare(self) -> None:
+        """Loads the layout, table, and classification models of its PDF pipeline."""
+        from ._docling import prepare
+
+        prepare(self)

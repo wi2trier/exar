@@ -46,13 +46,15 @@ class CorefMerge:
 
     Examples:
         >>> import asyncio
-        >>> from exar.ingest import Offloaded
+        >>> from exar.ingest import Chunker, Offloaded
         >>> from exar.typing import Question
         >>> async def pronoun(question: Question) -> float:
         ...     return float("<current>\\nIt " in question.text)
         >>> text = "Paris is large.\\n\\nIt is old.\\n\\nRome is old."
-        >>> paragraphs = lambda text: annotate(text, [Chunk(text=p, start=text.index(p), end=text.index(p) + len(p), tokens=len(p.split())) for p in text.split("\\n\\n")])
-        >>> merge = CorefMerge(chunker=Offloaded(paragraphs), judge=pronoun, size=64)
+        >>> class Paragraphs(Chunker):
+        ...     def __call__(self, text: str, /) -> list[Chunk]:
+        ...         return annotate(text, [Chunk(text=p, start=text.index(p), end=text.index(p) + len(p), tokens=len(p.split())) for p in text.split("\\n\\n")])
+        >>> merge = CorefMerge(chunker=Offloaded(Paragraphs()), judge=pronoun, size=64)
         >>> [chunk.text for chunk in asyncio.run(merge(text))]
         ['Paris is large.\\n\\nIt is old.', 'Rome is old.']
     """
@@ -72,6 +74,10 @@ class CorefMerge:
         )
 
         return await call(self.judge, question, name="judge") >= self.threshold
+
+    async def prepare(self) -> None:
+        """Prepares the chunker, since the judge runs elsewhere."""
+        await self.chunker.prepare()
 
     async def __call__(self, text: str, /) -> list[Chunk]:
         chunks: Sequence[Chunk] = await self.chunker(text)

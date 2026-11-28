@@ -174,6 +174,11 @@ def _bbox(item: PictureItem, document: DoclingDocument) -> BBox | None:
     )
 
 
+def prepare(config: Settings) -> None:
+    """Builds the PDF pipeline of the converter, which loads every model it holds, downloading them on the first run."""
+    _ = _converter(config, config.ocr).initialize_pipeline(InputFormat.PDF)
+
+
 def parse(source: Path, config: Settings) -> Parsed:
     """Parses a file, replacing every image placeholder of Docling with a reference to its asset."""
     ocr = config.ocr and not (

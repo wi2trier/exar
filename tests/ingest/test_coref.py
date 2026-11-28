@@ -1,28 +1,30 @@
-from exar.ingest import Chunk, CorefMerge, Offloaded, annotate
+from exar.ingest import Chunk, Chunker, CorefMerge, Offloaded, annotate
 from exar.typing import Question
 
 TEXT = "Paris is a city.\n\nIt is old.\n\nIt is large.\n\nRome is old.\n\nIt is huge."
 
 
-def _paragraphs(text: str) -> list[Chunk]:
-    """Chunks of the paragraphs of *text*, each starting with a heading that is not in its span."""
-    chunks: list[Chunk] = []
-    start = 0
+class _Paragraphs(Chunker):
+    """Chunks of the paragraphs of a text, each starting with a heading that is not in its span."""
 
-    for paragraph in text.split("\n\n"):
-        start = text.index(paragraph, start)
-        chunks.append(
-            Chunk(
-                text=f"# A\n\n{paragraph}",
-                start=start,
-                end=start + len(paragraph),
-                tokens=len(paragraph.split()),
-                prefix="# A\n\n",
+    def __call__(self, text: str, /) -> list[Chunk]:
+        chunks: list[Chunk] = []
+        start = 0
+
+        for paragraph in text.split("\n\n"):
+            start = text.index(paragraph, start)
+            chunks.append(
+                Chunk(
+                    text=f"# A\n\n{paragraph}",
+                    start=start,
+                    end=start + len(paragraph),
+                    tokens=len(paragraph.split()),
+                    prefix="# A\n\n",
+                )
             )
-        )
-        start += len(paragraph)
+            start += len(paragraph)
 
-    return annotate(text, chunks)
+        return annotate(text, chunks)
 
 
 async def _pronoun(question: Question) -> float:
@@ -30,7 +32,7 @@ async def _pronoun(question: Question) -> float:
 
 
 async def test_coref_joins_dependent_runs_up_to_the_size_keeping_the_prefix() -> None:
-    merged = await CorefMerge(chunker=Offloaded(_paragraphs), judge=_pronoun, size=8)(
+    merged = await CorefMerge(chunker=Offloaded(_Paragraphs()), judge=_pronoun, size=8)(
         TEXT
     )
 

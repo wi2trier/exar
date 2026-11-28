@@ -14,12 +14,14 @@ from exar.ingest import (
     Email,
     Json,
     Kreuzberg,
+    Offloaded,
     Pandoc,
     Parsed,
     Parser,
     PdfOxide,
     Pdftotext,
     PlainText,
+    Repaired,
     Route,
     WithFallback,
     garbled,
@@ -28,7 +30,7 @@ from exar.ingest import (
 
 
 @dataclass(frozen=True, slots=True)
-class Fixed:
+class Fixed(Parser):
     markdown: str
 
     def __call__(self, source: Path, /) -> Parsed:
@@ -36,9 +38,21 @@ class Fixed:
 
 
 @dataclass(frozen=True, slots=True)
-class Failing:
+class Failing(Parser):
     def __call__(self, source: Path, /) -> Parsed:
         raise ValueError("unreadable")
+
+
+@dataclass(frozen=True, slots=True)
+class Recording(Parser):
+    name: str
+    prepared: list[str]
+
+    def __call__(self, source: Path, /) -> Parsed:
+        return Parsed(markdown=self.name)
+
+    def prepare(self) -> None:
+        self.prepared.append(self.name)
 
 
 def test_plain_text_decodes_legacy_text(tmp_path: Path) -> None:
@@ -79,6 +93,23 @@ def test_route_and_fallback(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="unreadable"):
         WithFallback(primary=Failing(), fallback=Fixed(" \n"))(source)
+
+
+async def test_wrappers_prepare_every_parser_they_run_where_it_runs() -> None:
+    prepared: list[str] = []
+    parser = Route(
+        parsers={
+            ".pdf": WithFallback(
+                primary=Recording("primary", prepared),
+                fallback=Repaired(parser=Recording("repaired", prepared)),
+            )
+        },
+        default=Recording("default", prepared),
+    )
+
+    await Offloaded(parser).prepare()
+
+    assert prepared == ["primary", "repaired", "default"]
 
 
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="needs pandoc")

@@ -1,14 +1,11 @@
-import asyncio
 from collections.abc import Sequence
 
 import pytest
 
-from exar.ingest import Chunk, Whole, index_document
+from exar.ingest import Chunk, Offloaded, Whole, index_document
 from exar.memory import digest
 
-
-async def whole(text: str) -> Sequence[Chunk]:
-    return await asyncio.to_thread(Whole(), text)
+whole = Offloaded(Whole())
 
 
 class Store:

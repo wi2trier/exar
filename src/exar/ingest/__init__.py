@@ -12,7 +12,7 @@ The building blocks follow the path of a document:
 - `pipeline`: Chunk a document into a store and stamp its digest and the fingerprint of the chunker last (`index_document`).
 - `executors`: Run crash-prone native code in worker processes that survive crashes, hangs, and leaks.
 - `host`: Build components from the options of an operator, fingerprint them, and run them off the event loop
-  (`configure`, `fingerprint`, `offloaded`).
+  (`configure`, `fingerprint`, `offloaded`), where every component can `prepare` the models it would download.
 
 Parsers, chunkers, and media functions are synchronous and picklable, so the caller picks where they run.
 Configured components are frozen dataclasses whose fields are their configuration.

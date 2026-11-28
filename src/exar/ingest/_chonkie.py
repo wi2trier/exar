@@ -88,8 +88,14 @@ def overlap(
 
 
 @cache
-def _counter(tokenizer: str) -> AutoTokenizer:
-    return AutoTokenizer(tokenizer)
+def load_tokenizer(name: str) -> AutoTokenizer:
+    """The tokenizer of chonkie *name* names, cached per process, which loads one of a model hub on the first call."""
+    return AutoTokenizer(name)
+
+
+def load_embeddings(model: str) -> None:
+    """Loads the embedding model of chonkie *model* names, as its semantic chunker does."""
+    _ = chonkie.AutoEmbeddings.get_embeddings(model)
 
 
 def _context(
@@ -120,7 +126,7 @@ def markdown(
     a table into chunks of *rows* rows, or of the rows that fit if None, that repeat its header, anything else recursively.
     With *context*, an eighth of *size* is left for the headings every chunk starts with.
     """
-    counter = _counter(tokenizer)
+    counter = load_tokenizer(tokenizer)
     reserve = size // 8 if context else 0
 
     def split(block: str, limit: int, table: bool) -> list[Chunk]:

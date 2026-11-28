@@ -7,6 +7,8 @@ and `fingerprint` names what a component was configured as, such as the chunker 
 leaving out the options marked `RUNTIME`.
 `Offloaded` runs a synchronous component in an executor, such as an `exar.ingest.ProcessPool`,
 so it serves as an `AsyncParser` or `AsyncChunker`, and `offloaded` does both steps at once.
+Every component can `prepare`, loading ahead of its first call every model that call would download,
+so a host can fetch them and then run offline.
 """
 
 import asyncio
@@ -57,17 +59,29 @@ class SyncComponent[A, R](Protocol):
 
     def __call__(self, arg: A, /) -> R: ...
 
+    def prepare(self) -> None:
+        """Loads every model the first call would download."""
+        ...
+
 
 class AsyncParser(Protocol):
     """Converts a source file to Markdown off the event loop."""
 
     async def __call__(self, source: Path, /) -> Parsed: ...
 
+    async def prepare(self) -> None:
+        """Loads every model the first call would download."""
+        ...
+
 
 class AsyncChunker(Protocol):
     """Chunks a document off the event loop."""
 
     async def __call__(self, text: str, /) -> Sequence[Chunk]: ...
+
+    async def prepare(self) -> None:
+        """Loads every model the first call would download."""
+        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,12 +93,18 @@ class Offloaded[A, R]:
         executor: Where it runs, the default executor of the event loop if None.
     """
 
-    func: Callable[[A], R]
+    func: SyncComponent[A, R]
     executor: Executor | None = None
 
     async def __call__(self, arg: A, /) -> R:
         return await asyncio.get_running_loop().run_in_executor(
             self.executor, self.func, arg
+        )
+
+    async def prepare(self) -> None:
+        """Prepares the component where it runs, so a worker process loads the models it would."""
+        await asyncio.get_running_loop().run_in_executor(
+            self.executor, self.func.prepare
         )
 
 
